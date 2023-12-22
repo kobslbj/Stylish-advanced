@@ -24,7 +24,7 @@ const PrivateRoute: FC = () => {
   const isLoggedIn = Cookies.get("token");
   return isLoggedIn ? <Outlet /> : <Navigate to="/login" />;
 };
-
+// TODO:記得改掉
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -37,11 +37,12 @@ function App() {
             <Route path="/accessories" element={<ProductPageLayout endpoint="accessories" />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/user" element={<ProfilePage />} />
             <Route element={<LoginRoute />}>
               <Route path="/login" element={<LoginPage />} />
             </Route>
             <Route element={<PrivateRoute />}>
-              <Route path="/user" element={<ProfilePage />} />
+              {/* <Route path="/user" element={<ProfilePage />} /> */}
               <Route path="/thankyou" element={<ThankyouPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

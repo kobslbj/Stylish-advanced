@@ -29,5 +29,6 @@ module.exports = {
     "@typescript-eslint/quotes": "off",
     "operator-linebreak": "off",
     "object-curly-newline": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
 };

@@ -1,11 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import Header from "../components/layout/Header";
+import { useState } from "react";
 import Footer from "../components/layout/Footer";
+import Header from "../components/layout/Header";
+import ProfileForm from "../components/profile/ProfileForm";
 // import OrderHistory from "../components/profile/OrderHistory";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const [editing, setEditing] = useState(false);
 
   function logoutHandler() {
     Cookies.remove("token");
@@ -27,7 +30,13 @@ const ProfilePage = () => {
             <p>使用者名稱: {Cookies.get("user_name")}</p>
             <p>使用者email: {Cookies.get("user_email")}</p>
           </div>
-          {/* <OrderHistory /> */}
+          <div className="flex items-center gap-24">
+            {editing ? <div>hello</div> : <ProfileForm />}
+            <div className="flex flex-col items-center gap-8">
+              <div className="bg-black rounded-full md:w-[11.25rem] md:h-[11.25rem]" />
+              <button type="button"><input type="file" />編輯照片</button>
+            </div>
+          </div>
           <button
             type="button"
             onClick={logoutHandler}
