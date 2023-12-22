@@ -17,16 +17,12 @@ type Form = {
   time: string;
 };
 
-const emailRegex =
-  /(?<zipcode>(^\d{5}|^\d{3})?)(?<city>\D+[縣市])(?<district>\D+?(市區|鎮區|鎮市|[鄉鎮市區]))(?<others>.+)/;
-
 const schema = z.object({
   name: z.string().min(2).max(255),
   phoneNumber: z
     .string()
-    .length(10, "手機格式不正確")
-    .regex(/^09\d{8}$/, "手機格式不正確"),
-  address: z.string().regex(emailRegex, "請輸入正確的地址格式"),
+    .length(10, "手機格式不正確"),
+  address: z.string(),
   email: z.string().email(),
   time: z.enum(["08:00-12:00", "14:00-18:00", "不指定"]),
 });
