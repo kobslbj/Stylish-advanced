@@ -13,7 +13,7 @@ const useTappay = () => {
           placeholder: "**** **** **** ****",
         },
         expirationDate: {
-          element: document.getElementById("card-expiration-date"),
+          element: '#card-expiration-date',
           placeholder: "MM / YY",
         },
         ccv: {

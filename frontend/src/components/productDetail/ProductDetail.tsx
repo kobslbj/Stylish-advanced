@@ -55,14 +55,7 @@ const ProductDetail = () => {
   ));
   const variants = data.variants.filter((variant) => variant.color_code === selectedColor);
 
-  const sortedVariants = variants.sort((a, b) => {
-    const customSizeOrder = ["S", "M", "L"];
-    const indexOfA = customSizeOrder.indexOf(a.size);
-    const indexOfB = customSizeOrder.indexOf(b.size);
-    return indexOfA - indexOfB;
-  });
-
-  const sizeItems = sortedVariants.map((variant) => (
+  const sizeItems = variants.map((variant) => (
     <button
       type="button"
       key={variant.size}
@@ -79,7 +72,7 @@ const ProductDetail = () => {
     </button>
   ));
 
-  const selectedVariant = sortedVariants.find((variant) => variant.size === selectedSize);
+  const selectedVariant = variants.find((variant) => variant.size === selectedSize);
   const isMaxCountReached = selectedVariant && count >= selectedVariant.stock;
   const amountButton = (
     <div className="flex justify-around py-[6px] px-[15px] border lg:w-40 w-full">
@@ -106,8 +99,8 @@ const ProductDetail = () => {
       </button>
     </div>
   );
-  const imagesItems = data.images?.map((image) => (
-    <img key={image} src={image} alt="相關商品圖片" className="lg:mb-[30px] mb-5" />
+  const imagesItems = data.images?.map((image,index) => (
+    <img key={index} src={image} alt="相關商品圖片" className="lg:mb-[30px] mb-5" />
   ));
 
   function addToCartHandler() {
@@ -130,20 +123,20 @@ const ProductDetail = () => {
           item.colorCode === productCartData.colorCode &&
           item.size === productCartData.size,
       );
+      const Toast = Swal.mixin({
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 1000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.onmouseenter = Swal.stopTimer;
+          toast.onmouseleave = Swal.resumeTimer;
+        }
+      });
       if (existingItemIndex !== -1) {
         existingCartItems[existingItemIndex].quantity += productCartData.quantity;
         localStorage.setItem("cart", JSON.stringify(existingCartItems));
-        const Toast = Swal.mixin({
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-          }
-        });
         Toast.fire({
           icon: "success",
           title: "已增加商品數量"
@@ -151,17 +144,6 @@ const ProductDetail = () => {
       } else {
         existingCartItems.push(productCartData);
         localStorage.setItem("cart", JSON.stringify(existingCartItems));
-        const Toast = Swal.mixin({
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-          }
-        });
         Toast.fire({
           icon: "success",
           title: "已加入購物車"
@@ -227,7 +209,7 @@ const ProductDetail = () => {
           <div className="bg-[#3F3A3A] h-px flex-grow" />
         </div>
         <p className="mt-7 mb-[1.875rem] font-sans text-base lg:text-xl text-[#3F3A3A]">{data.story}</p>
-        <div className="flex flex-col items-center"> {imagesItems}</div>
+        <div className="flex flex-col items-center">{imagesItems}</div>
       </div>
     </div>
   );
