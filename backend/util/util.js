@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const port = process.env.PORT;
 const User = require('../server/models/user_model');
-const {TOKEN_SECRET} = process.env; // 30 days by seconds
+const {TOKEN_SECRET} = process.env;
 const jwt = require('jsonwebtoken');
 const { promisify } = require('util'); // util from native nodejs library
 
@@ -26,6 +26,31 @@ const upload = multer({
         }
     })
 });
+
+const uploadUserImage = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            const userId = req.body.id;
+            const imagePath = path.join(__dirname, `../public/assets/${userId}`);
+            if (fs.existsSync(imagePath)) {
+                // delete all files in the folder
+                const files = fs.readdirSync(imagePath);
+                files.forEach((file) => {
+                    const filePath = path.join(imagePath, file);
+                    fs.unlinkSync(filePath);
+                });
+            } else {
+                fs.mkdirSync(imagePath);
+            }
+            cb(null, imagePath);
+        },
+        filename: (req, file, cb) => {
+            const customFileName = crypto.randomBytes(18).toString('hex').substr(0, 8);
+            const fileExtension = file.mimetype.split('/')[1]; // get file extension from original file name
+            cb(null, customFileName + '.' + fileExtension);
+        }
+    })
+})
 
 const getImagePath = (protocol, hostname, productId) => {
     if (protocol == 'http') {
@@ -88,6 +113,7 @@ const authentication = (roleId) => {
 
 module.exports = {
     upload,
+    uploadUserImage,
     getImagePath,
     wrapAsync,
     authentication
