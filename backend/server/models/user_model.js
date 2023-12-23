@@ -172,6 +172,7 @@ const updateUserImage = async (picture, user) => {
 
         user.access_token = accessToken;
         user.access_expired = TOKEN_EXPIRE;
+        user.picture = picture;
 
         await conn.query('COMMIT');
         return user;

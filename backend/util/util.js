@@ -60,6 +60,14 @@ const getImagePath = (protocol, hostname, productId) => {
     }
 };
 
+const getUserImagePath = (protocol, hostname, userId) => {
+    if (protocol == 'http') {
+        return protocol + '://' + hostname + ':' + port + '/assets/' + userId + '/';
+    } else {
+        return protocol + '://' + hostname + '/assets/' + userId + '/';
+    }
+};
+
 // reference: https://thecodebarbarian.com/80-20-guide-to-express-error-handling
 const wrapAsync = (fn) => {
     return function(req, res, next) {
@@ -115,6 +123,7 @@ module.exports = {
     upload,
     uploadUserImage,
     getImagePath,
+    getUserImagePath,
     wrapAsync,
     authentication
 };
