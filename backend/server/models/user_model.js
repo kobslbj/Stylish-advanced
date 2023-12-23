@@ -96,52 +96,6 @@ const nativeSignIn = async (email, password) => {
     }
 };
 
-const facebookSignIn = async (id, roleId, name, email) => {
-    const conn = await pool.getConnection();
-    try {
-        await conn.query('START TRANSACTION');
-        const loginAt = new Date();
-        let user = {
-            provider: 'facebook',
-            role_id: roleId,
-            email: email,
-            name: name,
-            picture:'https://graph.facebook.com/' + id + '/picture?type=large',
-            access_expired: TOKEN_EXPIRE,
-            login_at: loginAt
-        };
-        const accessToken = jwt.sign({
-            provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
-        }, TOKEN_SECRET);
-        user.access_token = accessToken;
-
-        const [users] = await conn.query('SELECT id FROM user WHERE email = ? AND provider = \'facebook\' FOR UPDATE', [email]);
-        let userId;
-        if (users.length === 0) { // Insert new user
-            const queryStr = 'insert into user set ?';
-            const [result] = await conn.query(queryStr, user);
-            userId = result.insertId;
-        } else { // Update existed user
-            userId = users[0].id;
-            const queryStr = 'UPDATE user SET access_token = ?, access_expired = ?, login_at = ?  WHERE id = ?';
-            await conn.query(queryStr, [accessToken, TOKEN_EXPIRE, loginAt, userId]);
-        }
-        user.id = userId;
-
-        await conn.query('COMMIT');
-
-        return {user};
-    } catch (error) {
-        await conn.query('ROLLBACK');
-        return {error};
-    } finally {
-        await conn.release();
-    }
-};
-
 const getUserDetail = async (email, roleId) => {
     try {
         if (roleId) {
@@ -156,23 +110,87 @@ const getUserDetail = async (email, roleId) => {
     }
 };
 
-const getFacebookProfile = async function(accessToken){
+const updateUserInfo = async (newUser) => {
+    const conn = await pool.getConnection();
     try {
-        let res = await got('https://graph.facebook.com/me?fields=id,name,email&access_token=' + accessToken, {
-            responseType: 'json'
-        });
-        return res.body;
-    } catch (e) {
-        console.log(e);
-        throw('Permissions Error: facebook access token is wrong');
+        await conn.query('START TRANSACTION');
+        
+        const {id, provider, name, email, phone_number, birthday, address, picture} = newUser;
+        const accessToken = jwt.sign({
+            provider,
+            name,
+            email,
+            phone_number,
+            birthday,
+            address,
+            picture,
+        }, TOKEN_SECRET);
+
+        await conn.query(`
+        UPDATE user SET 
+        name = ?, email = ?,
+        phone_number = ?, birthday = ?,
+        address = ?, access_token = ?, 
+        access_expired = ? WHERE id = ?`, 
+        [name, email, phone_number, birthday, address, accessToken, TOKEN_EXPIRE, id]);
+
+        newUser.access_token = accessToken;
+        newUser.access_expired = TOKEN_EXPIRE;
+
+        await conn.query('COMMIT');
+        return newUser;
+    } catch (error) {
+        await conn.query('ROLLBACK');
+        console.log(error);
+        return {error};
+    } finally {
+        await conn.release();
     }
-};
+}
+
+const updateUserImage = async (picture, user) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.query('START TRANSACTION');
+
+        const {id, provider, name, email, phone_number, birthday, address} = user;
+        const accessToken = jwt.sign({
+            provider,
+            name,
+            email,
+            phone_number,
+            birthday,
+            address,
+            picture,
+        }, TOKEN_SECRET);
+
+        await conn.query(`
+        UPDATE user 
+        SET picture = ?, access_token = ?,
+        access_expired = ? WHERE id = ?`,
+        [picture, accessToken, TOKEN_EXPIRE, id]);
+
+        user.access_token = accessToken;
+        user.access_expired = TOKEN_EXPIRE;
+        user.picture = picture;
+
+        await conn.query('COMMIT');
+        return user;
+    } catch (error) {
+        await conn.query('ROLLBACK');
+        return {error};
+    } finally {
+        await conn.release();
+    }
+
+}
+
 
 module.exports = {
     USER_ROLE,
     signUp,
     nativeSignIn,
-    facebookSignIn,
     getUserDetail,
-    getFacebookProfile,
+    updateUserInfo,
+    updateUserImage,
 };
