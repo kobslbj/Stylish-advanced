@@ -1,6 +1,7 @@
 require('dotenv').config();
 const validator = require('validator');
 const User = require('../models/user_model');
+const {getUserImagePath} = require('../../util/util');
 
 const signUp = async (req, res) => {
     let {name} = req.body;
@@ -141,7 +142,7 @@ const updateUserInfo = async (req, res) => {
 
     res.status(200).send({
         data: {
-            id: result.id,
+            id: parseInt(result.id),
             provider: result.provider,
             name: result.name,
             email: result.email,
@@ -163,13 +164,15 @@ const updateUserImage = async (req, res) => {
         return;
     }
 
-    user.id = data.id;
+    user.id = parseInt(data.id);
 
     const result = await User.updateUserImage(req.files.image[0].filename, user);
     if (result.error) {
         res.status(500).send({error: 'Database Query Error'});
         return;
     }
+
+    result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
 
     res.status(200).send({
         data: {
