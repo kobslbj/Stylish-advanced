@@ -3,6 +3,93 @@ const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
 
+// 評論 
+// productId : product Table中存在的id
+// userId    : user Table中存在的id
+const createComment = async (req, res) => {
+    const uploadPromises = [];
+    console.log('發過來的檔案是: ', req.files.images)
+
+    const images_url = [];
+    if (req.files.images) {
+        const images = req.files.images;
+        images.forEach((image,index)=>{
+            const imageParams = {
+                Bucket: 'bucket81213',
+                Key: `${Date.now()}-image-${index}-${image.originalname}`,
+                Body: image.buffer,
+                ContentType: image.mimetype
+            };
+
+            uploadPromises.push(new Promise((resolve,reject)=>{
+                util.S3.upload(imageParams, function (error, data) {
+                    if (error) {
+                        console.log(error);
+                        reject(error);
+                    } else {
+                        console.log(`Image ${index} Upload Successfully`, data.Location);
+                        images_url.push(data.Location)
+                        resolve(data);
+                    }
+                });
+            }))
+        })
+    }
+
+    await Promise.all(uploadPromises);
+    console.log('存進去的圖片是: ',images_url);
+    
+
+    try {
+        console.log(req.body);
+        const { productId, userId, text, rating } = req.body;
+
+        // 假設你有一個 Comment 模型，並有一個類似 createComment 的方法
+        // 把要用到資料庫ㄉ操作用到product_model那邊
+        const commentId = await Product.createComment(
+            productId,  // 評論的商品  
+            userId,     // 評論的人 
+            text,       // 評論內容
+            rating,     // 星星評等 
+            JSON.stringify(images_url)
+            // 如果需要，添加其他評論屬性
+        );
+
+
+        if (commentId === -1) {
+            res.status(500).send({ error: '創建評論失敗' });
+        } else {
+            console.log(commentId)
+            res.status(200).send({ commentId });
+        }
+    } catch (error) {
+        console.error('創建評論時出錯：', error);
+        res.status(500).send({ error: '內部服務器錯誤' });
+    }
+};
+
+// 按Like
+const likeComment = async (req, res) => {
+    console.log(req.body);
+    try {
+        const { commentId } = req.body;
+        console.log(commentId);
+
+        const success = await Product.likeComment(commentId);
+
+        if (success) {
+            res.status(200).send({ success: true });
+        } else {
+            res.status(500).send({ error: '点赞失败' });
+        }
+    } catch (error) {
+        console.error('点赞时出错：', error);
+        res.status(500).send({ error: '内部服务器错误' });
+    }
+}
+
+
+// 生成商品
 const createProduct = async (req, res) => {
     const body = req.body;
     const product = {
@@ -27,7 +114,7 @@ const createProduct = async (req, res) => {
                 product.id,
                 color_id,
                 size,
-                Math.round(Math.random()*10),
+                Math.round(Math.random() * 10),
             ];
         });
     });
@@ -41,10 +128,11 @@ const createProduct = async (req, res) => {
     if (productId == -1) {
         res.status(500);
     } else {
-        res.status(200).send({productId});
+        res.status(200).send({ productId });
     }
 };
 
+// 拿到商品
 const getProducts = async (req, res) => {
     const category = req.params.category;
     const paging = parseInt(req.query.paging) || 0;
@@ -54,37 +142,37 @@ const getProducts = async (req, res) => {
             case 'all':
                 return await Product.getProducts(pageSize, paging);
             case 'men': case 'women': case 'accessories':
-                return await Product.getProducts(pageSize, paging, {category});
+                return await Product.getProducts(pageSize, paging, { category });
             case 'search': {
                 const keyword = req.query.keyword;
                 if (keyword) {
-                    return await Product.getProducts(pageSize, paging, {keyword});
+                    return await Product.getProducts(pageSize, paging, { keyword });
                 }
                 break;
             }
             case 'hot': {
-                return await Product.getProducts(null, null, {category});
+                return await Product.getProducts(null, null, { category });
             }
             case 'details': {
                 const id = parseInt(req.query.id);
                 if (Number.isInteger(id)) {
-                    return await Product.getProducts(pageSize, paging, {id});
+                    return await Product.getProducts(pageSize, paging, { id });
                 }
             }
         }
         return Promise.resolve({});
     }
-    const {products, productCount} = await findProduct(category);
+    const { products, productCount } = await findProduct(category);
     if (!products) {
-        res.status(400).send({error:'Wrong Request'});
+        res.status(400).send({ error: 'Wrong Request' });
         return;
     }
 
     if (products.length == 0) {
         if (category === 'details') {
-            res.status(200).json({data: null});
+            res.status(200).json({ data: null });
         } else {
-            res.status(200).json({data: []});
+            res.status(200).json({ data: [] });
         }
         return;
     }
@@ -105,6 +193,7 @@ const getProducts = async (req, res) => {
     res.status(200).json(result);
 };
 
+// 商品的詳細資料
 const getProductsWithDetail = async (protocol, hostname, products) => {
     const productIds = products.map(p => p.id);
     const variants = await Product.getProductsVariants(productIds);
@@ -140,7 +229,9 @@ const getProductsWithDetail = async (protocol, hostname, products) => {
 };
 
 module.exports = {
+    likeComment,
     createProduct,
+    createComment,
     getProductsWithDetail,
     getProducts,
 };

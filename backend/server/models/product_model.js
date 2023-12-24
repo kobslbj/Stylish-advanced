@@ -1,4 +1,4 @@
-const {pool} = require('./mysqlcon');
+const { pool } = require('./mysqlcon');
 
 const createProduct = async (product, variants, images) => {
     const conn = await pool.getConnection();
@@ -18,8 +18,59 @@ const createProduct = async (product, variants, images) => {
     }
 };
 
+// Comment 對資料庫的操作
+const createComment = async (productId, userId, text, rating, image_url) => {
+    const conn = await pool.getConnection();
+    //console.log('DBDBDBDB',userId,productId,text,rating)
+    console.log("Comment 對 DB 操作開始")
+    console.log(productId)
+    console.log(userId)
+    console.log(text)
+    console.log(rating)
+    console.log(image_url)
+
+    try {
+        // Insert a new comment into the comment table
+        const [result] = await conn.query(
+            'INSERT INTO comment (productId, userId, text, rating, images_url) VALUES (?, ?, ?, ?, ?)',
+            [productId, userId, text, rating, image_url]
+        );
+        // console.log(result.insertId);
+
+
+        return result.insertId; // Return the ID of the newly inserted comment
+    } catch (error) {
+        console.error('Error creating comment:', error);
+        return -1; // Return -1 or some other error indicator based on your logic
+    } finally {
+        await conn.release();
+    }
+};
+
+
+// Like Comment的DB操作
+const likeComment = async (commentId) => {
+    const conn = await pool.getConnection();
+    console.log('評論的ID是: ',commentId)
+    try {
+        // 更新评论的点赞数量
+        const [result] = await conn.query(
+            'UPDATE comment SET likes = likes + 1 WHERE commentId = ?',
+            [commentId]
+        );
+
+        return result.affectedRows > 0;
+    } catch (error) {
+        console.error('点赞时出错：', error);
+        return false;
+    } finally {
+        await conn.release();
+    }
+};
+
+
 const getProducts = async (pageSize, paging = 0, requirement = {}) => {
-    const condition = {sql: '', binding: []};
+    const condition = { sql: '', binding: [] };
     if (requirement.category) {
         condition.sql = 'WHERE category = ?';
         condition.binding = [requirement.category];
@@ -73,6 +124,8 @@ const getProductsImages = async (productIds) => {
 };
 
 module.exports = {
+    createComment,
+    likeComment,
     createProduct,
     getProducts,
     getHotProducts,
