@@ -86,6 +86,10 @@ const signIn = async (req, res) => {
         return;
     }
 
+    if (user.picture !== null) {
+        user.picture = getUserImagePath(req.protocol, req.hostname, user.id) + user.picture;
+    }
+
     res.status(200).send({
         data: {
             access_token: user.access_token,
@@ -106,15 +110,27 @@ const signIn = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
+    const user = req.user;
+    
+    const result = await User.getUserDetail(user.id);
+    if (result === null) {
+        res.status(500).send({error: 'Database Query Error'});
+        return;
+    }
+
+    if (result.picture !== null) {
+        result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    }
+
     res.status(200).send({
         data: {
-            provider: req.user.provider,
-            name: req.user.name,
-            email: req.user.email,
-            phone_number: req.user.phone_number,
-            birthday: req.user.birthday,
-            address: req.user.address,
-            picture: req.user.picture
+            provider: result.provider,
+            name: result.name,
+            email: result.email,
+            phone_number: result.phone_number,
+            birthday: result.birthday,
+            address: result.address,
+            picture: result.picture
         }
     });
     return;
@@ -155,37 +171,32 @@ const updateUserInfo = async (req, res) => {
             phone_number: result.phone_number,
             birthday: result.birthday,
             address: result.address,
-            access_token: result.access_token,
-            access_expired: result.access_expired,
         }
     });
 }
 
 const updateUserImage = async (req, res) => {
     const data = req.body;
-    const user = req.user;
     
     if (!data.id) {
         res.status(400).send({error: 'Request Error: id is required.'});
         return;
     }
 
-    user.id = parseInt(data.id);
-
-    const result = await User.updateUserImage(req.files.image[0].filename, user);
+    const result = await User.updateUserImage(req.files.image[0].filename, data.id);
     if (result.error) {
         res.status(500).send({error: 'Database Query Error'});
         return;
     }
 
-    result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    if (result.picture !== null) {
+        result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    }
 
     res.status(200).send({
         data: {
             id: result.id,
             picture: result.picture,
-            access_token: result.access_token,
-            access_expired: result.access_expired,
         }
     });
 }

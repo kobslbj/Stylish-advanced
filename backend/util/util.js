@@ -99,9 +99,9 @@ const authentication = (roleId) => {
             } else {
                 let userDetail;
                 if (roleId == User.USER_ROLE.ALL) {
-                    userDetail = await User.getUserDetail(user.email);
+                    userDetail = await User.getUserDetail(user.id);
                 } else {
-                    userDetail = await User.getUserDetail(user.email, roleId);
+                    userDetail = await User.getUserDetail(user.id, roleId);
                 }
                 if (!userDetail) {
                     res.status(403).send({error: 'Forbidden'});
