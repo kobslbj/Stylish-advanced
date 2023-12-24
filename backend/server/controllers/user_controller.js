@@ -41,7 +41,10 @@ const signUp = async (req, res) => {
                 provider: user.provider,
                 name: user.name,
                 email: user.email,
-                picture: user.picture
+                picture: user.picture,
+                phone_number: user.phone_number,
+                birthday: user.birthday,
+                address: user.address,
             }
         }
     });
@@ -93,7 +96,10 @@ const signIn = async (req, res) => {
                 provider: user.provider,
                 name: user.name,
                 email: user.email,
-                picture: user.picture
+                picture: user.picture,
+                phone_number: user.phone_number,
+                birthday: user.birthday,
+                address: user.address,
             }
         }
     });
