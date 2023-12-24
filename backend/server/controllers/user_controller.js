@@ -113,7 +113,7 @@ const getUserProfile = async (req, res) => {
     const user = req.user;
     
     const result = await User.getUserDetail(user.id);
-    if (result === null) {
+    if (!result) {
         res.status(500).send({error: 'Database Query Error'});
         return;
     }
@@ -124,7 +124,7 @@ const getUserProfile = async (req, res) => {
 
     res.status(200).send({
         data: {
-            provider: result.provider,
+            id: parseInt(result.id),
             name: result.name,
             email: result.email,
             phone_number: result.phone_number,
@@ -137,7 +137,6 @@ const getUserProfile = async (req, res) => {
 };
 
 const updateUserInfo = async (req, res) => {
-    const user = req.user;
     const data = req.body;
     
     if (!data.id) {
@@ -145,16 +144,13 @@ const updateUserInfo = async (req, res) => {
         return;
     }
 
-    if (!data.name || !data.email ||
-        !data.phone_number || !data.birthday ||
-        !data.address
+    if (data.name === undefined || data.email === undefined ||
+        data.phone_number === undefined || data.birthday === undefined ||
+        data.address === undefined
     ) {
         res.status(400).send({error: 'Request Error: All field is required.'});
         return;
     }
-
-    data.provider = user.provider;
-    data.picture = user.picture;
 
     const result = await User.updateUserInfo(data);
     if (result.error) {
@@ -165,7 +161,6 @@ const updateUserInfo = async (req, res) => {
     res.status(200).send({
         data: {
             id: parseInt(result.id),
-            provider: result.provider,
             name: result.name,
             email: result.email,
             phone_number: result.phone_number,
@@ -177,13 +172,25 @@ const updateUserInfo = async (req, res) => {
 
 const updateUserImage = async (req, res) => {
     const data = req.body;
-    
+    const file = req.files.image;
+
     if (!data.id) {
         res.status(400).send({error: 'Request Error: id is required.'});
         return;
     }
 
-    const result = await User.updateUserImage(req.files.image[0].filename, data.id);
+    // check if multer upload file successfully
+    if (!file && data.id != req.user.id) {
+        res.status(400).send({error: 'Forbidden'});
+        return;
+    }
+
+    if (!file) {
+        res.status(400).send({error: 'Request Error: image is required.'});
+        return;
+    }
+
+    const result = await User.updateUserImage(file[0].filename, data.id);
     if (result.error) {
         res.status(500).send({error: 'Database Query Error'});
         return;

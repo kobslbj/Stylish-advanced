@@ -61,14 +61,7 @@ const uploadUserImage = multer({
         destination: (req, file, cb) => {
             const userId = req.body.id;
             const imagePath = path.join(__dirname, `../public/assets/${userId}`);
-            if (fs.existsSync(imagePath)) {
-                // delete all files in the folder
-                const files = fs.readdirSync(imagePath);
-                files.forEach((file) => {
-                    const filePath = path.join(imagePath, file);
-                    fs.unlinkSync(filePath);
-                });
-            } else {
+            if (!fs.existsSync(imagePath)) {
                 fs.mkdirSync(imagePath);
             }
             cb(null, imagePath);
@@ -78,7 +71,15 @@ const uploadUserImage = multer({
             const fileExtension = file.mimetype.split('/')[1]; // get file extension from original file name
             cb(null, customFileName + '.' + fileExtension);
         }
-    })
+    }),
+    fileFilter(req, file, cb) {
+        // 驗證是不是對的使用者
+        if (req.body.id != req.user.id) {
+            cb(null, false);
+        } else {
+            cb(null, true);
+        }
+    }
 })
 
 const getImagePath = (protocol, hostname, productId) => {
@@ -123,6 +124,15 @@ const authentication = (roleId) => {
         try {
             const user = await promisify(jwt.verify)(accessToken, TOKEN_SECRET);
             req.user = user;
+            
+            // check if the user id in the request body is the same as the user id in the token
+            if (req.body && req.body.id) {
+                if (req.body.id != user.id) {
+                    res.status(403).send({ error: 'Forbidden' });
+                    return;
+                }
+            }
+
             if (roleId == null) {
                 next();
             } else {
