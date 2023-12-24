@@ -32,6 +32,9 @@ const signUp = async (name, roleId, email, password) => {
             password: bcrypt.hashSync(password, salt),
             name: name,
             picture: null,
+            phone_number: null,
+            birthday: null,
+            address: null,
             access_expired: TOKEN_EXPIRE,
             login_at: loginAt
         };
@@ -39,7 +42,10 @@ const signUp = async (name, roleId, email, password) => {
             provider: user.provider,
             name: user.name,
             email: user.email,
-            picture: user.picture
+            picture: user.picture,
+            phone_number: null,
+            birthday: null,
+            address: null,
         }, TOKEN_SECRET);
         user.access_token = accessToken;
 
@@ -75,7 +81,10 @@ const nativeSignIn = async (email, password) => {
             provider: user.provider,
             name: user.name,
             email: user.email,
-            picture: user.picture
+            picture: user.picture,
+            phone_number: user.phone_number,
+            birthday: user.birthday,
+            address: user.address,
         }, TOKEN_SECRET);
 
         const queryStr = 'UPDATE user SET access_token = ?, access_expired = ?, login_at = ? WHERE id = ?';
