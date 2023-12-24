@@ -3,6 +3,7 @@ const validator = require('validator');
 const {TAPPAY_PARTNER_KEY, TAPPAY_MERCHANT_ID} = process.env;
 const Order = require('../models/order_model');
 
+// 訂單紀錄
 const checkout = async (req, res) => {
     const data = req.body;
 	if (!data.order || !data.order.total || !data.order.list || !data.prime) {

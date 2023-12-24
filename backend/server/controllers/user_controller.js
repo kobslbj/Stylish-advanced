@@ -58,24 +58,6 @@ const nativeSignIn = async (email, password) => {
     }
 };
 
-const facebookSignIn = async (accessToken) => {
-    if (!accessToken) {
-        return {error: 'Request Error: access token is required.', status: 400};
-    }
-
-    try {
-        const profile = await User.getFacebookProfile(accessToken);
-        const {id, name, email} = profile;
-
-        if(!id || !name || !email){
-            return {error: 'Permissions Error: facebook access token can not get user id, name or email'};
-        }
-
-        return await User.facebookSignIn(id, User.USER_ROLE.USER, name, email);
-    } catch (error) {
-        return {error: error};
-    }
-};
 
 const signIn = async (req, res) => {
     const data = req.body;
@@ -84,9 +66,6 @@ const signIn = async (req, res) => {
     switch (data.provider) {
         case 'native':
             result = await nativeSignIn(data.email, data.password);
-            break;
-        case 'facebook':
-            result = await facebookSignIn(data.access_token);
             break;
         default:
             result = {error: 'Wrong Request'};
