@@ -56,11 +56,44 @@ const upload = multer({
     })
 });
 
+const uploadUserImage = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            const userId = req.body.id;
+            const imagePath = path.join(__dirname, `../public/assets/${userId}`);
+            if (fs.existsSync(imagePath)) {
+                // delete all files in the folder
+                const files = fs.readdirSync(imagePath);
+                files.forEach((file) => {
+                    const filePath = path.join(imagePath, file);
+                    fs.unlinkSync(filePath);
+                });
+            } else {
+                fs.mkdirSync(imagePath);
+            }
+            cb(null, imagePath);
+        },
+        filename: (req, file, cb) => {
+            const customFileName = crypto.randomBytes(18).toString('hex').substr(0, 8);
+            const fileExtension = file.mimetype.split('/')[1]; // get file extension from original file name
+            cb(null, customFileName + '.' + fileExtension);
+        }
+    })
+})
+
 const getImagePath = (protocol, hostname, productId) => {
     if (protocol == 'http') {
         return protocol + '://' + hostname + ':' + port + '/assets/' + productId + '/';
     } else {
         return protocol + '://' + hostname + '/assets/' + productId + '/';
+    }
+};
+
+const getUserImagePath = (protocol, hostname, userId) => {
+    if (protocol == 'http') {
+        return protocol + '://' + hostname + ':' + port + '/assets/' + userId + '/';
+    } else {
+        return protocol + '://' + hostname + '/assets/' + userId + '/';
     }
 };
 
@@ -119,7 +152,9 @@ module.exports = {
     upload,
     S3,
     uploadAWS,
+    uploadUserImage,
     getImagePath,
+    getUserImagePath,
     wrapAsync,
     authentication
 };
