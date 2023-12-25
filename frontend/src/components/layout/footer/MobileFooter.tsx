@@ -60,7 +60,7 @@ function MobileFooter() {
           <Cart />
           <span className="font-sans text-base font-normal text-white">購物車</span>
         </a>
-        <a href={Cookies.get("token") ? "/user" : "/login"} className="flex items-center justify-center w-1/2">
+        <a href={Cookies.get("token") ? "/my/profile" : "/login"} className="flex items-center justify-center w-1/2">
           <img src={Member} alt="member" />
           <span className="font-sans text-base font-normal text-white">會員</span>
         </a>
