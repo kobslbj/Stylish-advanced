@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { ProductCart } from "../../types/productCartType";
 import useTappay from "../../hooks/useTappay";
 import { CartCountContext } from "../../contexts/CartCountContext";
@@ -81,7 +82,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
     const tappayStatus = TPDirect.card.getTappayFieldsStatus();
     console.log(tappayStatus);
     if (tappayStatus.canGetPrime === false) {
-      alert("can not get prime");
+      Swal.fire("can not get prime", "error");
     }
     try {
       const prime = await new Promise<string>((resolve) => {
@@ -110,7 +111,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
           list,
         },
       };
-      console.log(requestBody);
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/order/checkout`, requestBody, {
         headers: {
           Authorization: `Bearer ${Cookies.get("token")}`,

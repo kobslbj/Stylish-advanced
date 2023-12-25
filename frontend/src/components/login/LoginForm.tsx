@@ -43,7 +43,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ setShowLogin, showLogin }) => {
   } = useForm<Form>({ resolver: zodResolver(validationScheme) });
 
   function setCookies(data: UserData) {
-    const maxAge = { expires: 1 / 24 }; // 1hr
+    const maxAge = { expires: 30 }; // 30 days
     Cookies.set("token", data.access_token, maxAge);
     Cookies.set("user_id", data.user.id.toString(), maxAge);
     Cookies.set("user_name", data.user.name, maxAge);
