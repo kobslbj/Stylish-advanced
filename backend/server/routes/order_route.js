@@ -8,6 +8,7 @@ const {
     checkout,
     getUserPayments,
     getUserPaymentsGroupByDB,
+    getUserHistory,
 } = require('../controllers/order_controller');
 
 const {
@@ -16,6 +17,9 @@ const {
 
 router.route('/order/checkout')
     .post(authentication(USER_ROLE.ALL), wrapAsync(checkout));
+
+router.route('/order/history')
+    .get(authentication(USER_ROLE.ALL), wrapAsync(getUserHistory));
 
 // For load testing (Not in API Docs)
 router.route('/order/payments')
