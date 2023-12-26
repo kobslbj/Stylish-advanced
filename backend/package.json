@@ -51,6 +51,7 @@
         "natural": "^6.10.4",
         "nodejs-jieba": "^0.1.2",
         "nodemon": "^2.0.4",
+        "puppeteer": "^21.6.1",
         "redis": "^4.0.4",
         "sinon": "^8.1.1",
         "stopword": "^2.0.8",

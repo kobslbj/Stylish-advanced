@@ -6,9 +6,11 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { useQuery } from "@tanstack/react-query";
 import { ProductCart } from "../../types/productCartType";
 import useTappay from "../../hooks/useTappay";
 import { CartCountContext } from "../../contexts/CartCountContext";
+import { fetchUserProfile } from "../../utils/api";
 
 type Form = {
   name: string;
@@ -39,6 +41,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
   const [loading, setLoading] = useState(false);
   useTappay();
 
+  const { data } = useQuery({
+    queryFn: () => fetchUserProfile(),
+    queryKey: ["user", Cookies.get("user_id")],
+  });
+
   useEffect(() => {
     const handleStorageChange = () => {
       const cartItems: ProductCart[] = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -59,7 +66,17 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<Form>({ resolver: zodResolver(validationScheme) });
+
+  useEffect(() => {
+    if (data) {
+      setValue("name", data.name);
+      setValue("address", data.address);
+      setValue("email", data.email);
+      setValue("phoneNumber", data.phone_number);
+    }
+  }, [data, setValue]);
   const freight = 0;
 
   function transformCartItems(cartItems: ProductCart[]) {
@@ -117,7 +134,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
         },
       });
       console.log(response.data.data);
-      navigate(`/thankyou?order_id=${response.data.data.number}&time=${response.data.data.time}`);
+      navigate(`/thankyou?order_id=${response.data.data.number}`);
     } catch (error) {
       console.log(error);
     }
@@ -142,7 +159,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
                   errors.name && errorInput
                 }`}
                 disabled={disabled}
-                defaultValue={Cookies.get("user_name") || ""}
                 {...register("name")}
               />
             </label>
@@ -181,7 +197,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
                   errors.email && errorInput
                 }`}
                 disabled={disabled}
-                defaultValue={Cookies.get("user_email") || ""}
                 {...register("email")}
               />
               {errors.email && <span className="text-red-500">{errors.email.message}</span>}

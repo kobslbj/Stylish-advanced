@@ -2,6 +2,11 @@ const _ = require('lodash');
 const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
+//const axios = require('axios');
+//const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
+//const puppeteer_extra = require('puppeteer-extra');
+//const pluginStealth = require('puppeteer-extra-plugin-stealth');
 
 // 評論 
 // productId : product Table中存在的id
@@ -13,7 +18,7 @@ const createComment = async (req, res) => {
     const images_url = [];
     if (req.files.images) {
         const images = req.files.images;
-        images.forEach((image,index)=>{
+        images.forEach((image, index) => {
             const imageParams = {
                 Bucket: 'bucket81213',
                 Key: `${Date.now()}-image-${index}-${image.originalname}`,
@@ -21,7 +26,7 @@ const createComment = async (req, res) => {
                 ContentType: image.mimetype
             };
 
-            uploadPromises.push(new Promise((resolve,reject)=>{
+            uploadPromises.push(new Promise((resolve, reject) => {
                 util.S3.upload(imageParams, function (error, data) {
                     if (error) {
                         console.log(error);
@@ -37,8 +42,8 @@ const createComment = async (req, res) => {
     }
 
     await Promise.all(uploadPromises);
-    console.log('存進去的圖片是: ',images_url);
-    
+    console.log('存進去的圖片是: ', images_url);
+
 
     try {
         console.log(req.body);
@@ -85,6 +90,19 @@ const likeComment = async (req, res) => {
     } catch (error) {
         console.error('点赞时出错：', error);
         res.status(500).send({ error: '内部服务器错误' });
+    }
+}
+
+// 拿到評論
+const getComment = async (req, res) => {
+    console.log(req.query.id);
+    const comment = await Product.getComment(req.query.id);
+
+    if(comment===-1){
+        res.status(500).send({error:'拿不到評論'})
+    }else{
+        console.log(comment)
+        res.status(200).send({comment});
     }
 }
 
@@ -228,10 +246,66 @@ const getProductsWithDetail = async (protocol, hostname, products) => {
     });
 };
 
+
+// 比價  API
+const comparePrice = async (req, res) => {
+    console.log(req.body.searchword);
+    const browser = await puppeteer.launch({ headless: "new" });
+    const page = await browser.newPage();
+    await page.goto(`https://www.findprice.com.tw/g/${req.body.searchword}`);
+    //console.log(page.content());
+    const itemData = await page.evaluate(() => {
+        let data = [];
+
+        let divHotDetails = document.querySelector(".divHotDetail")
+
+        if (divHotDetails) {
+            let divHotDetailList = divHotDetails.querySelectorAll(".divHotDetailList")
+            for (let i = 0; i < divHotDetailList.length - 1; i++) {
+                let temp = {}
+                // console.log(divHotDetailList[i].querySelector(".mIcon").src)
+                // console.log(divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent)
+                // console.log(divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent)
+                temp.shopPic = divHotDetailList[i].querySelector(".mIcon").src;
+                temp.shopName = divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent;
+                temp.price = divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent;
+                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
+                data.push(temp);
+            }
+        }
+        else {
+            let divGoods = document.querySelectorAll(".divGoods")
+            for (let i = 0; i < divGoods.length; i++) {
+                let temp = {}
+                //console.log(divGoods[i].querySelector(".mIcon").src);  
+                //console.log(divGoods[i].querySelector(".mname").textContent)
+                //console.log(divGoods[i].querySelector(".rec-price-20").textContent)
+                temp.shopPic = divGoods[i].querySelector(".mIcon").src;
+                temp.shopName = divGoods[i].querySelector(".mname").textContent;
+                temp.price = divGoods[i].querySelector(".rec-price-20").textContent;
+                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
+                data.push(temp);
+            }
+        }
+        return data;
+    });
+
+    // 对价格进行排序，选择前五个
+    const sortedData = itemData.sort((a, b) => parseFloat(a.price) - parseFloat(b.price)).slice(0, 5);
+
+    console.log(sortedData);
+    res.json(sortedData);
+
+
+}
+
+
 module.exports = {
     likeComment,
+    getComment,
     createProduct,
     createComment,
     getProductsWithDetail,
     getProducts,
+    comparePrice
 };

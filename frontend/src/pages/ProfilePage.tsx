@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import Swal from "sweetalert2";
 import Footer from "../components/layout/Footer";
 import Header from "../components/layout/Header";
@@ -10,16 +9,7 @@ import ProfileForm from "../components/profile/ProfileForm";
 import EditAvatar from "../components/profile/EditAvatar";
 import ProfileUser from "../assets/images/profile-user.png";
 import UserSideBar from "../components/layout/UserSideBar";
-
-const token = Cookies.get("token");
-async function fetchUserProfile() {
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/user/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return response.data.data;
-}
+import { fetchUserProfile } from "../utils/api";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -68,10 +58,10 @@ const ProfilePage = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="lg:pt-[8.875rem] pt-[6.375rem] flex-1 lg:max-w-[1160px] mx-auto">
-        <div className="flex gap-10 my-8">
+        <div className="flex gap-3 my-8">
           <UserSideBar />
           <div className="mt-5 ml-4">
-            <p className="font-sans text-[#3F3A3A] text-base font-bold mb-4">使用者資料</p>
+            <p className="font-sans text-[#3F3A3A] text-2xl font-bold mb-4">使用者資料</p>
             <div className="items-center block gap-5 lg:flex lg:gap-24">
               <ProfileForm data={data} />
               <div className="flex flex-col items-center gap-8">
