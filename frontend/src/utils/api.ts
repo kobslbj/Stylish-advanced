@@ -19,6 +19,14 @@ export async function fetchProductDetail(id: string) {
   });
   return response.data.data;
 }
+export async function fetchUserProfile() {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/user/profile`, {
+    headers: {
+      Authorization: `Bearer ${Cookies.get("token")}`,
+    },
+  });
+  return response.data.data;
+}
 
 export async function fetchOrderHistory(id: string) {
   const response = await axios.get(`${import.meta.env.VITE_API_URL}/order/history`, {

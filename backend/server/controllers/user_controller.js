@@ -86,6 +86,10 @@ const signIn = async (req, res) => {
         return;
     }
 
+    if (user.picture !== null) {
+        user.picture = getUserImagePath(req.protocol, req.hostname, user.id) + user.picture;
+    }
+
     res.status(200).send({
         data: {
             access_token: user.access_token,
@@ -106,22 +110,33 @@ const signIn = async (req, res) => {
 };
 
 const getUserProfile = async (req, res) => {
+    const user = req.user;
+    
+    const result = await User.getUserDetail(user.id);
+    if (!result) {
+        res.status(500).send({error: 'Database Query Error'});
+        return;
+    }
+
+    if (result.picture !== null) {
+        result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    }
+
     res.status(200).send({
         data: {
-            provider: req.user.provider,
-            name: req.user.name,
-            email: req.user.email,
-            phone_number: req.user.phone_number,
-            birthday: req.user.birthday,
-            address: req.user.address,
-            picture: req.user.picture
+            id: parseInt(result.id),
+            name: result.name,
+            email: result.email,
+            phone_number: result.phone_number,
+            birthday: result.birthday,
+            address: result.address,
+            picture: result.picture
         }
     });
     return;
 };
 
 const updateUserInfo = async (req, res) => {
-    const user = req.user;
     const data = req.body;
     
     if (!data.id) {
@@ -129,16 +144,13 @@ const updateUserInfo = async (req, res) => {
         return;
     }
 
-    if (!data.name || !data.email ||
-        !data.phone_number || !data.birthday ||
-        !data.address
+    if (data.name === undefined || data.email === undefined ||
+        data.phone_number === undefined || data.birthday === undefined ||
+        data.address === undefined
     ) {
         res.status(400).send({error: 'Request Error: All field is required.'});
         return;
     }
-
-    data.provider = user.provider;
-    data.picture = user.picture;
 
     const result = await User.updateUserInfo(data);
     if (result.error) {
@@ -149,43 +161,49 @@ const updateUserInfo = async (req, res) => {
     res.status(200).send({
         data: {
             id: parseInt(result.id),
-            provider: result.provider,
             name: result.name,
             email: result.email,
             phone_number: result.phone_number,
             birthday: result.birthday,
             address: result.address,
-            access_token: result.access_token,
-            access_expired: result.access_expired,
         }
     });
 }
 
 const updateUserImage = async (req, res) => {
     const data = req.body;
-    const user = req.user;
-    
+    const file = req.files.image;
+
     if (!data.id) {
         res.status(400).send({error: 'Request Error: id is required.'});
         return;
     }
 
-    user.id = parseInt(data.id);
+    // check if multer upload file successfully
+    if (!file && data.id != req.user.id) {
+        res.status(400).send({error: 'Forbidden'});
+        return;
+    }
 
-    const result = await User.updateUserImage(req.files.image[0].filename, user);
+    if (!file) {
+        res.status(400).send({error: 'Request Error: image is required.'});
+        return;
+    }
+
+    const result = await User.updateUserImage(file[0].filename, data.id);
     if (result.error) {
         res.status(500).send({error: 'Database Query Error'});
         return;
     }
 
-    result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    if (result.picture !== null) {
+        result.picture = getUserImagePath(req.protocol, req.hostname, result.id) + result.picture;
+    }
 
     res.status(200).send({
         data: {
             id: result.id,
             picture: result.picture,
-            access_token: result.access_token,
-            access_expired: result.access_expired,
         }
     });
 }

@@ -38,21 +38,20 @@ const signUp = async (name, roleId, email, password) => {
             access_expired: TOKEN_EXPIRE,
             login_at: loginAt
         };
-        const accessToken = jwt.sign({
-            provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture,
-            phone_number: null,
-            birthday: null,
-            address: null,
-        }, TOKEN_SECRET);
-        user.access_token = accessToken;
 
         const queryStr = 'INSERT INTO user SET ?';
         const [result] = await conn.query(queryStr, user);
 
+        const accessToken = jwt.sign({
+            provider: user.provider,
+            id: result.insertId,
+        }, TOKEN_SECRET);
+        
+        await conn.query('UPDATE user SET access_token = ? WHERE id = ?', [accessToken, result.insertId]);
+
+        user.access_token = accessToken;
         user.id = result.insertId;
+
         await conn.query('COMMIT');
         return {user};
     } catch (error) {
@@ -79,12 +78,7 @@ const nativeSignIn = async (email, password) => {
         const loginAt = new Date();
         const accessToken = jwt.sign({
             provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture,
-            phone_number: user.phone_number,
-            birthday: user.birthday,
-            address: user.address,
+            id: user.id,
         }, TOKEN_SECRET);
 
         const queryStr = 'UPDATE user SET access_token = ?, access_expired = ?, login_at = ? WHERE id = ?';
@@ -105,15 +99,16 @@ const nativeSignIn = async (email, password) => {
     }
 };
 
-const getUserDetail = async (email, roleId) => {
+const getUserDetail = async (id, roleId) => {
     try {
+        let users;
         if (roleId) {
-            const [users] = await pool.query('SELECT * FROM user WHERE email = ? AND role_id = ?', [email, roleId]);
-            return users[0];
+            [users] = await pool.query('SELECT * FROM user WHERE id = ? AND role_id = ?', [id, roleId]);
         } else {
-            const [users] = await pool.query('SELECT * FROM user WHERE email = ?', [email]);
-            return users[0];
+            [users] = await pool.query('SELECT * FROM user WHERE id = ?', [id]);
         }
+
+        return users[0];
     } catch (e) {
         return null;
     }
@@ -124,67 +119,37 @@ const updateUserInfo = async (newUser) => {
     try {
         await conn.query('START TRANSACTION');
         
-        const {id, provider, name, email, phone_number, birthday, address, picture} = newUser;
-        const accessToken = jwt.sign({
-            provider,
-            name,
-            email,
-            phone_number,
-            birthday,
-            address,
-            picture,
-        }, TOKEN_SECRET);
+        const {id, name, email, phone_number, birthday, address} = newUser;
 
         await conn.query(`
         UPDATE user SET 
         name = ?, email = ?,
         phone_number = ?, birthday = ?,
-        address = ?, access_token = ?, 
-        access_expired = ? WHERE id = ?`, 
-        [name, email, phone_number, birthday, address, accessToken, TOKEN_EXPIRE, id]);
-
-        newUser.access_token = accessToken;
-        newUser.access_expired = TOKEN_EXPIRE;
+        address = ? WHERE id = ?`, 
+        [name, email, phone_number, birthday, address, id]);
 
         await conn.query('COMMIT');
         return newUser;
     } catch (error) {
         await conn.query('ROLLBACK');
-        console.log(error);
         return {error};
     } finally {
         await conn.release();
     }
 }
 
-const updateUserImage = async (picture, user) => {
+const updateUserImage = async (picture, userId) => {
     const conn = await pool.getConnection();
     try {
         await conn.query('START TRANSACTION');
-
-        const {id, provider, name, email, phone_number, birthday, address} = user;
-        const accessToken = jwt.sign({
-            provider,
-            name,
-            email,
-            phone_number,
-            birthday,
-            address,
-            picture,
-        }, TOKEN_SECRET);
-
+        
         await conn.query(`
         UPDATE user 
-        SET picture = ?, access_token = ?,
-        access_expired = ? WHERE id = ?`,
-        [picture, accessToken, TOKEN_EXPIRE, id]);
-
-        user.access_token = accessToken;
-        user.access_expired = TOKEN_EXPIRE;
-        user.picture = picture;
+        SET picture = ? WHERE id = ?`,
+        [picture, userId]);
 
         await conn.query('COMMIT');
-        return user;
+        return {picture, id: userId};
     } catch (error) {
         await conn.query('ROLLBACK');
         return {error};

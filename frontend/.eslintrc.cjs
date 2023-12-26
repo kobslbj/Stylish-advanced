@@ -28,6 +28,9 @@ module.exports = {
     "jsx-a11y/control-has-associated-label": "off",
     "@typescript-eslint/quotes": "off",
     "operator-linebreak": "off",
+    "import/no-extraneous-dependencies":"off",
     "object-curly-newline": "off",
+    "no-param-reassign":"off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
 };

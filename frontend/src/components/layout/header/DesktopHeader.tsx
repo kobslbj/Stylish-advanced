@@ -28,7 +28,7 @@ const DesktopHeader: React.FC = () => (
       <a href="/checkout" className="mx-[2.625rem]">
         <Cart />
       </a>
-      <a href={Cookies.get("token") ? "/user" : "/login"} className="cursor-pointer group">
+      <a href={Cookies.get("token") ? "/my/profile" : "/login"} className="cursor-pointer group">
         <img src={Member} alt="member" className="group-hover:hidden" />
         <img src={HoveredMember} alt="member-hover" className="hidden group-hover:block" />
       </a>

@@ -1,10 +1,9 @@
 export interface User {
-  access_token: string;
-  access_expired: number;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    picture: string;
-  };
+  id: number;
+  name: string;
+  email: string;
+  picture: string;
+  phone_number: string;
+  address: string;
+  birthday: string;
 }
