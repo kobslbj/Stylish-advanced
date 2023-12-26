@@ -47,11 +47,26 @@ const createComment = async (productId, userId, text, rating, image_url) => {
     }
 };
 
+// getComment 的 DB操作
+const getComment = async (productId) => {
+    const conn = await pool.getConnection();
+    try{
+        const [result] = await conn.query(
+            `SELECT * FROM comment WHERE productId = ${productId}`
+        )
+        console.log(result);
+        return result;
+    }catch (error) {
+        console.error('Error Getting comment:', error);
+        return -1; // Return -1 or some other error indicator based on your logic
+    }
+}
+
 
 // Like Comment的DB操作
 const likeComment = async (commentId) => {
     const conn = await pool.getConnection();
-    console.log('評論的ID是: ',commentId)
+    console.log('評論的ID是: ', commentId)
     try {
         // 更新评论的点赞数量
         const [result] = await conn.query(
@@ -123,8 +138,11 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
+
+
 module.exports = {
     createComment,
+    getComment,
     likeComment,
     createProduct,
     getProducts,
