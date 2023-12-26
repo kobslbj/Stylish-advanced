@@ -30,6 +30,7 @@ module.exports = {
     "operator-linebreak": "off",
     "import/no-extraneous-dependencies":"off",
     "object-curly-newline": "off",
+    "no-param-reassign":"off",
     "@typescript-eslint/no-explicit-any": "off"
   },
 };

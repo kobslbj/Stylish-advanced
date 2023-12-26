@@ -4,7 +4,7 @@ const sidebarLinks = [
 ];
 
 const UserSideBar = () => (
-  <div className="flex flex-col gap-4 px-8 border-r">
+  <div className="flex flex-col gap-4 px-8 border-r h-[70vh]">
     {sidebarLinks.map((item) => (
       <a key={item.href} href={item.href} className="block text-lg hover:text-brown">
         {item.text}
