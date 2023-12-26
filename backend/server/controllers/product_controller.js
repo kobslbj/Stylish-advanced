@@ -2,16 +2,35 @@ const _ = require('lodash');
 const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
-//const axios = require('axios');
-//const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
-//const puppeteer_extra = require('puppeteer-extra');
-//const pluginStealth = require('puppeteer-extra-plugin-stealth');
+
+
+var options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: true,
+    timeZone: 'Asia/Taipei'
+};
+// 取得當前時間
+var time = new Date();
+var formattedTime = time.toLocaleString('en-US', options);
+
+
 
 // 評論 
 // productId : product Table中存在的id
 // userId    : user Table中存在的id
 const createComment = async (req, res) => {
+
+    // 自定義日期格式
+    var formattedDate = formattedTime.replace(/(\d+)\/(\d+)\/(\d+),/, '$3/$1/$2');
+
+    console.log(formattedDate);
+
     const uploadPromises = [];
     console.log('發過來的檔案是: ', req.files.images)
 
@@ -47,16 +66,19 @@ const createComment = async (req, res) => {
 
     try {
         console.log(req.body);
-        const { productId, userId, text, rating } = req.body;
+        const { productId, userId, username, userpicture, text, rating } = req.body;
 
         // 假設你有一個 Comment 模型，並有一個類似 createComment 的方法
         // 把要用到資料庫ㄉ操作用到product_model那邊
         const commentId = await Product.createComment(
             productId,  // 評論的商品  
-            userId,     // 評論的人 
+            userId,     // 評論的人id
+            username,   // 評論人名字
+            userpicture,// 評論人頭貼
             text,       // 評論內容
             rating,     // 星星評等 
-            JSON.stringify(images_url)
+            JSON.stringify(images_url),
+            formattedDate,
             // 如果需要，添加其他評論屬性
         );
 
@@ -98,11 +120,11 @@ const getComment = async (req, res) => {
     console.log(req.query.id);
     const comment = await Product.getComment(req.query.id);
 
-    if(comment===-1){
-        res.status(500).send({error:'拿不到評論'})
-    }else{
+    if (comment === -1) {
+        res.status(500).send({ error: '拿不到評論' })
+    } else {
         console.log(comment)
-        res.status(200).send({comment});
+        res.status(200).send({ comment });
     }
 }
 
@@ -309,3 +331,5 @@ module.exports = {
     getProducts,
     comparePrice
 };
+
+
