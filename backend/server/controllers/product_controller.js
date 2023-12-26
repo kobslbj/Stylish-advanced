@@ -5,6 +5,8 @@ const pageSize = 6;
 //const axios = require('axios');
 //const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
+const { buildIBSimilarMatrix } = require('../../util/recommendation/itembased');
+const { buildUBSimilarMatrix } = require('../../util/recommendation/userbased');
 //const puppeteer_extra = require('puppeteer-extra');
 //const pluginStealth = require('puppeteer-extra-plugin-stealth');
 
@@ -66,7 +68,9 @@ const createComment = async (req, res) => {
         } else {
             console.log(commentId)
             res.status(200).send({ commentId });
+            await buildUBSimilarMatrix(); // Rebuild the userbased similarity matrix
         }
+
     } catch (error) {
         console.error('創建評論時出錯：', error);
         res.status(500).send({ error: '內部服務器錯誤' });
@@ -147,7 +151,9 @@ const createProduct = async (req, res) => {
         res.status(500);
     } else {
         res.status(200).send({ productId });
+        await buildIBSimilarMatrix(); // Rebuild the similarity matrix
     }
+
 };
 
 // 拿到商品
@@ -246,6 +252,46 @@ const getProductsWithDetail = async (protocol, hostname, products) => {
     });
 };
 
+// 拿到相似商品
+const getSimilarProducts = async (req, res) => {
+    const productId = parseInt(req.query.id);
+
+    if (!productId) {
+        res.status(400).send({ error: 'Id is Required' });
+        return;
+    }
+
+    const similarProducts = await Product.getSimilarProducts(productId);
+
+    if (similarProducts.length == 0) {
+        res.status(200).json({ data: [] });
+        return;
+    }
+
+    const products = await getProductsWithDetail(req.protocol, req.hostname, similarProducts);
+    res.status(200).json({ data: products });
+}
+
+// 可能喜歡的商品
+const getMayLikeProducts = async (req, res) => {
+    const userId = parseInt(req.query.id);
+
+    if (!userId) {
+        res.status(400).send({ error: 'Id is Required' });
+        return;
+    }
+
+    const mayLikeProducts = await Product.getMayLikeProducts(userId);
+
+    if (mayLikeProducts.length == 0) {
+        res.status(200).json({ data: [] });
+        return;
+    }
+
+    const products = await getProductsWithDetail(req.protocol, req.hostname, mayLikeProducts);
+    res.status(200).json({ data: products });
+
+}
 
 // 比價  API
 const comparePrice = async (req, res) => {
@@ -307,5 +353,7 @@ module.exports = {
     createComment,
     getProductsWithDetail,
     getProducts,
+    getSimilarProducts,
+    getMayLikeProducts,
     comparePrice
 };

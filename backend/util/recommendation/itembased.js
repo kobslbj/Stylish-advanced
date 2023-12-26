@@ -19,9 +19,12 @@ let model;
 
 const loadMobileNetModel = async () => {
     if (!model) {
-        model = await mobilenet.load({version: 2, alpha: 0.5});
+        let start = new Date();
+        _model = await mobilenet.load({version: 2, alpha: 0.5});
+        let end = new Date();
+        console.log(`MobileNet Model Loading Time: ${end - start}ms`);
+        model = _model.model;
     }
-    return model.model;
 };
 
 const readImage = (imagePath) => {
@@ -38,13 +41,12 @@ const extractFeatures = async (model, imageBuffer) => {
 }
 
 const getImageFeatures = async (imagePath) => {
-    const model = await loadMobileNetModel();
     const image = readImage(imagePath);
+    
     const features = await extractFeatures(model, image);
 
     return features;
 }
-
 
 const customTokenizer = (text) => {
     if (/[^\x00-\x7F]/.test(text)) {
@@ -71,7 +73,7 @@ const computeSimilarity = (matrix) => {
     return similarityMatrix;
 };
 
-const buildSimilarMatrix = async () => {
+const buildIBSimilarMatrix = async () => {
     // Get Product Data
     const connection = await pool.getConnection();
     const [rows] = await connection.query('SELECT id, category, title, description, texture, story, main_image from product');
@@ -100,8 +102,8 @@ const buildSimilarMatrix = async () => {
         textVectors.push(vector);
     });
 
-    let start = new Date();
     // Get Image Features
+    let start = new Date();
     const imageFeatures = [];
     for (let i = 0; i < rows.length; i++) {
         const imagePath = `./public/assets/${rows[i]['id']}/${rows[i]['main_image']}`;
@@ -109,25 +111,32 @@ const buildSimilarMatrix = async () => {
         imageFeatures.push(features);
     }
     let end = new Date();
-
     console.log(`Image Feature Extraction Time: ${end - start}ms`);
 
     // Combine Text and Image Features
-    textVectors.forEach((vector, index) => {
-        vector.push(...imageFeatures[index]);
-    });
+    const productFeatures = [];
+    for (let i = 0; i < textVectors.length; i++) {
+        const features = [...textVectors[i], ...imageFeatures[i]];
+        productFeatures.push(features);
+    }
 
     // Compute Similarity
     start = new Date();
-    const similarityMatrix = computeSimilarity(textVectors);
+    const similarityMatrix = computeSimilarity(productFeatures);
     end = new Date();
 
     console.log(`Similarity Matrix Computation Time: ${end - start}ms`);
     
-    const data = {
-        matrix: similarityMatrix,
-        productIds: rows.map((row) => row['id']),
-    };
+    const data = {};
+
+    rows.forEach((product, index) => {
+        data[product['id']] = similarityMatrix[index].map((similarity, index) => {
+            return {
+                'id': rows[index]['id'],
+                'similarity': similarity
+            };
+        });
+    });
 
     // Save to File
     if (!fs.existsSync(SAVE_DIR)) {
@@ -140,11 +149,16 @@ const buildSimilarMatrix = async () => {
 
 if (require.main === module) {
     (async () => {
+        await loadMobileNetModel();
         console.log('Building Similarity Matrix...');
-        await buildSimilarMatrix();
+        await buildIBSimilarMatrix();
         console.log('Done!');
         process.exit();
-        // await getImageFeatures('./public/images/add.png');
     })();
 
 }
+
+module.exports = {
+    loadMobileNetModel,
+    buildIBSimilarMatrix
+};
