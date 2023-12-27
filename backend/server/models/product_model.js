@@ -20,7 +20,7 @@ const createProduct = async (product, variants, images) => {
 };
 
 // Comment 對資料庫的操作
-const createComment = async (productId, userId, text, rating, image_url) => {
+const createComment = async (productId, userId, username, userpicture, text, rating, image_url, formattedDate) => {
     const conn = await pool.getConnection();
     //console.log('DBDBDBDB',userId,productId,text,rating)
     console.log("Comment 對 DB 操作開始")
@@ -29,12 +29,13 @@ const createComment = async (productId, userId, text, rating, image_url) => {
     console.log(text)
     console.log(rating)
     console.log(image_url)
+    console.log(formattedDate)
 
     try {
         // Insert a new comment into the comment table
         const [result] = await conn.query(
-            'INSERT INTO comment (productId, userId, text, rating, images_url) VALUES (?, ?, ?, ?, ?)',
-            [productId, userId, text, rating, image_url]
+            'INSERT INTO comment (productId, userId, username, userpicture, text, rating, images_url, commentTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [productId, userId, username, userpicture, text, rating, image_url, formattedDate]
         );
         // console.log(result.insertId);
 
@@ -51,13 +52,13 @@ const createComment = async (productId, userId, text, rating, image_url) => {
 // getComment 的 DB操作
 const getComment = async (productId) => {
     const conn = await pool.getConnection();
-    try{
+    try {
         const [result] = await conn.query(
             `SELECT * FROM comment WHERE productId = ${productId}`
         )
         console.log(result);
         return result;
-    }catch (error) {
+    } catch (error) {
         console.error('Error Getting comment:', error);
         return -1; // Return -1 or some other error indicator based on your logic
     }
