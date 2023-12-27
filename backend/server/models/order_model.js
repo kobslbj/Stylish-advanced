@@ -46,6 +46,41 @@ const payOrderByPrime = async function(tappayKey, tappayId, prime, order){
     return res.body;
 };
 
+const getUserHistory = async (userId) => {
+    const [orders] = await pool.query(`
+    SELECT number, status, time, total, details
+    FROM order_table 
+    JOIN user on order_table.user_id = user.id
+    WHERE user.id = ?`, [userId]);
+
+    if (!orders) {
+        return null;
+    }
+
+    if (orders.length === 0) {
+        return [];
+    }
+
+    const products = orders.map(order => {
+        return order.details.list.map(item => item.id);
+    });
+
+    const [main_images] = await pool.query(`
+    SELECT main_image
+    FROM product
+    WHERE id IN (?)`, [products.flat()]);
+
+    orders.forEach((order, index) => {
+        order.details.list.forEach((item, index) => {
+            item.main_image = main_images[index].main_image;
+        });
+    
+    })
+
+    return orders;
+
+}
+
 const getUserPayments = async () => {
     const [orders] = await pool.query('SELECT user_id, total FROM order_table');
     return orders;
@@ -62,4 +97,5 @@ module.exports = {
     payOrderByPrime,
     getUserPayments,
     getUserPaymentsGroupByDB,
+    getUserHistory,
 };
