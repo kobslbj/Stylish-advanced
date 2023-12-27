@@ -84,3 +84,6 @@ midterm*
 
 # Mac
 .DS_Store
+
+# recommendation model
+util/recommendation/matrixes
