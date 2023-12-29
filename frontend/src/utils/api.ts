@@ -8,6 +8,7 @@ export async function fetchProducts(endpoint: string, keyword: string | null, pa
 
   const params = keyword ? { keyword, paging: pageParam } : { paging: pageParam };
   const response = await axios.get(url, { params });
+  console.log(response)
   return response.data;
 }
 
@@ -30,4 +31,31 @@ export async function fetchOrderHistory(id: string) {
     },
   });
   return response.data.data;
+}
+
+export async function fetchProductComments(id: string) {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/products/getComment`, {
+    params: {
+      id,
+    },
+  });
+  return response.data.comment;
+}
+
+export async function fetchProductSimilar(productId: any) {
+  const url = `${import.meta.env.VITE_API_URL}/products/similar`;
+  const headers = {
+    Authorization: `Bearer ${Cookies.get("token")}`,
+  };
+
+  const body = {
+    id: productId
+  };
+
+  const response = await axios.get(url, {
+    headers: headers,
+    params: body
+  });
+
+  return response.data;
 }
