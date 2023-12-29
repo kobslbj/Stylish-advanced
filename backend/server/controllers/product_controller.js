@@ -67,6 +67,12 @@ const createComment = async (req, res) => {
     try {
         console.log(req.body);
         const { productId, userId, username, userpicture, text, rating } = req.body;
+        // console.log(typeof productId)
+        // console.log(typeof userId)
+        // console.log(typeof username)
+        // console.log(typeof userpicture)
+        // console.log(typeof text)
+        // console.log(typeof rating)
 
         // 假設你有一個 Comment 模型，並有一個類似 createComment 的方法
         // 把要用到資料庫ㄉ操作用到product_model那邊
