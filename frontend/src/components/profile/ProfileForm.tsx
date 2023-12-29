@@ -39,9 +39,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ data }) => {
     defaultValues: {
       name: data.name,
       email: data.email,
-      address: data.address || "",
-      phoneNumber: data.phone_number || "",
-      birthday: new Date(data.birthday).toISOString().split("T")[0] || "",
+      address: data?.address || "",
+      phoneNumber: data?.phone_number || "",
+      birthday: new Date(data?.birthday).toISOString().split("T")[0] || "",
     } });
 
   const mutation = useMutation({
@@ -60,6 +60,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ data }) => {
           headers: { Authorization: `Bearer ${Cookies.get("token")}` },
         },
       );
+      const maxAge = { expires: 30 };
+      Cookies.set("user_name", values.name, maxAge);
+      Cookies.set("user_email", values.email, maxAge);
     },
     onSuccess: () => {
       Swal.fire("個人資料更新成功", "感謝使用Stylish", "success");
