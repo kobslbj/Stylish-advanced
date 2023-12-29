@@ -1,16 +1,9 @@
 import { useState } from "react";
 import CommentForm from "./CommentForm";
+import { OrderItemType } from "../../types/orderType";
 
 interface OrderItemProps {
-  data:{
-    id:string;
-    name:string;
-    image:string;
-    price:number;
-    color_name:string;
-    size:string;
-    qty:number;
-  }
+  data:OrderItemType
 }
 
 const OrderItem:React.FC<OrderItemProps> = ({ data }) => {

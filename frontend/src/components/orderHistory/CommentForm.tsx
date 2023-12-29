@@ -45,6 +45,8 @@ const CommentForm:React.FC<CommentFormProps> = ({ setAddComment, productId }) =>
     setLoading(true);
     try {
       const formData = new FormData();
+      formData.append("username", Cookies.get("user_name")!);
+      formData.append("userpicture", Cookies.get("user_picture")!);
       formData.append("userId", Cookies.get("user_id")!);
       formData.append("productId", productId);
       formData.append("text", commentRef.current?.value || "");
@@ -59,6 +61,7 @@ const CommentForm:React.FC<CommentFormProps> = ({ setAddComment, productId }) =>
           headers: { Authorization: `Bearer ${Cookies.get("token")}`, "Content-Type": "multipart/form-data" },
         },
       );
+      Swal.fire("評論新增成功", "感謝分享", "success");
     } catch (error :any) {
       if (error?.response?.status === 403) {
         Swal.fire("帳號已過期", "請重新登入", "error");
