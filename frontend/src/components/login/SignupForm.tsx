@@ -22,9 +22,7 @@ const signupSchema = z
     name: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email"),
     password: z
-      .string()
-      .min(6, "密碼需大於6個字元")
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, "密碼須包含大小寫和數字"),
+      .string(),
     confirmPassword: z.string(),
   })
   .refine((value) => value.password === value.confirmPassword, {

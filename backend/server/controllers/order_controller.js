@@ -2,7 +2,9 @@ require('dotenv').config();
 const validator = require('validator');
 const {TAPPAY_PARTNER_KEY, TAPPAY_MERCHANT_ID} = process.env;
 const Order = require('../models/order_model');
+const util = require('../../util/util');
 
+// 訂單紀錄
 const checkout = async (req, res) => {
     const data = req.body;
 	if (!data.order || !data.order.total || !data.order.list || !data.prime) {
@@ -40,6 +42,55 @@ const checkout = async (req, res) => {
     res.send({data: {number}});
 };
 
+const getUserHistory = async (req, res) => {
+    const user = req.user;
+    if (!req.query || !req.query.id) {
+        res.status(400).send({error: 'Id is required'});
+        return;
+    }
+
+    if (req.query && req.query.id && user.id !== parseInt(req.query.id)) {
+        res.status(403).send({error: 'Forbidden'});
+        return;
+    }
+
+    const orders = await Order.getUserHistory(user.id);
+
+    if (!orders) {
+        res.status(500).send({error: 'Database Query Error'});
+        return;
+    }
+
+    if (orders.length === 0) {
+        res.status(200).send({data: []});
+        return;
+    }
+
+    const data = [...orders.map(order => {
+        return {
+            number: order.number,
+            status: order.status,
+            time: getTime(order.time),
+            total: order.total,
+            recipient_time: order.details.recipient.time,
+            list: order.details.list.map(item => {
+                return {
+                    id: item.id,
+                    name: item.name,
+                    image: util.getImagePath(req.protocol, req.hostname, item.id) + item.main_image,
+                    price: item.price,
+                    color_name: item.color.name,
+                    size: item.size,
+                    qty: item.qty,
+                }
+            }),
+        };
+    
+    })]
+    res.status(200).send({data});
+
+}
+
 // For Load Testing
 const getUserPayments = async (req, res) => {
     const orders = await Order.getUserPayments();
@@ -65,8 +116,13 @@ const getUserPaymentsGroupByDB = async (req, res) => {
     res.status(200).send({data: orders});
 };
 
+const getTime = (time) => {
+    return new Date(time).toISOString().replace('T', ' ').replace('Z', '').split('.')[0];
+}
+
 module.exports = {
     checkout,
     getUserPayments,
-    getUserPaymentsGroupByDB
+    getUserPaymentsGroupByDB,
+    getUserHistory,
 };

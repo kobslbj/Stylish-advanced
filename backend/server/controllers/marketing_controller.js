@@ -6,6 +6,7 @@ const util = require('../../util/util');
 const CACHE_CAMPAIGN_KEY = 'cacheCampaigns';
 const CACHE_HOT_KEY = 'cacheHots';
 
+// 產生活動
 const createCampaign = async (req, res) => {
     const body = req.body;
     const image = req.files.main_image[0].filename;
@@ -41,6 +42,7 @@ const createHot = async (req, res) => {
     res.status(200).send({ status: 'OK' });
 };
 
+// 活動
 const getCampaigns = async (req, res) => {
     let cacheCampaigns;
     try {
@@ -75,6 +77,7 @@ const getCampaigns = async (req, res) => {
     res.status(200).json({ data: campaigns });
 };
 
+// 拿熱門商品
 const getHots = async (req, res) => {
     let cacheHots;
     try {

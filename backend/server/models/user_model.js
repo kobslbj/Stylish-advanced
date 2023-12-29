@@ -32,21 +32,26 @@ const signUp = async (name, roleId, email, password) => {
             password: bcrypt.hashSync(password, salt),
             name: name,
             picture: null,
+            phone_number: null,
+            birthday: null,
+            address: null,
             access_expired: TOKEN_EXPIRE,
             login_at: loginAt
         };
-        const accessToken = jwt.sign({
-            provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
-        }, TOKEN_SECRET);
-        user.access_token = accessToken;
 
         const queryStr = 'INSERT INTO user SET ?';
         const [result] = await conn.query(queryStr, user);
 
+        const accessToken = jwt.sign({
+            provider: user.provider,
+            id: result.insertId,
+        }, TOKEN_SECRET);
+        
+        await conn.query('UPDATE user SET access_token = ? WHERE id = ?', [accessToken, result.insertId]);
+
+        user.access_token = accessToken;
         user.id = result.insertId;
+
         await conn.query('COMMIT');
         return {user};
     } catch (error) {
@@ -73,9 +78,7 @@ const nativeSignIn = async (email, password) => {
         const loginAt = new Date();
         const accessToken = jwt.sign({
             provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
+            id: user.id,
         }, TOKEN_SECRET);
 
         const queryStr = 'UPDATE user SET access_token = ?, access_expired = ?, login_at = ? WHERE id = ?';
@@ -96,83 +99,73 @@ const nativeSignIn = async (email, password) => {
     }
 };
 
-const facebookSignIn = async (id, roleId, name, email) => {
+const getUserDetail = async (id, roleId) => {
+    try {
+        let users;
+        if (roleId) {
+            [users] = await pool.query('SELECT * FROM user WHERE id = ? AND role_id = ?', [id, roleId]);
+        } else {
+            [users] = await pool.query('SELECT * FROM user WHERE id = ?', [id]);
+        }
+
+        return users[0];
+    } catch (e) {
+        return null;
+    }
+};
+
+const updateUserInfo = async (newUser) => {
     const conn = await pool.getConnection();
     try {
         await conn.query('START TRANSACTION');
-        const loginAt = new Date();
-        let user = {
-            provider: 'facebook',
-            role_id: roleId,
-            email: email,
-            name: name,
-            picture:'https://graph.facebook.com/' + id + '/picture?type=large',
-            access_expired: TOKEN_EXPIRE,
-            login_at: loginAt
-        };
-        const accessToken = jwt.sign({
-            provider: user.provider,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
-        }, TOKEN_SECRET);
-        user.access_token = accessToken;
+        
+        const {id, name, email, phone_number, birthday, address} = newUser;
 
-        const [users] = await conn.query('SELECT id FROM user WHERE email = ? AND provider = \'facebook\' FOR UPDATE', [email]);
-        let userId;
-        if (users.length === 0) { // Insert new user
-            const queryStr = 'insert into user set ?';
-            const [result] = await conn.query(queryStr, user);
-            userId = result.insertId;
-        } else { // Update existed user
-            userId = users[0].id;
-            const queryStr = 'UPDATE user SET access_token = ?, access_expired = ?, login_at = ?  WHERE id = ?';
-            await conn.query(queryStr, [accessToken, TOKEN_EXPIRE, loginAt, userId]);
-        }
-        user.id = userId;
+        await conn.query(`
+        UPDATE user SET 
+        name = ?, email = ?,
+        phone_number = ?, birthday = ?,
+        address = ? WHERE id = ?`, 
+        [name, email, phone_number, birthday, address, id]);
 
         await conn.query('COMMIT');
+        return newUser;
+    } catch (error) {
+        await conn.query('ROLLBACK');
+        console.log(error);
+        return {error};
+    } finally {
+        await conn.release();
+    }
+}
 
-        return {user};
+const updateUserImage = async (picture, userId) => {
+    const conn = await pool.getConnection();
+    try {
+        await conn.query('START TRANSACTION');
+        
+        await conn.query(`
+        UPDATE user 
+        SET picture = ? WHERE id = ?`,
+        [picture, userId]);
+
+        await conn.query('COMMIT');
+        return {picture, id: userId};
     } catch (error) {
         await conn.query('ROLLBACK');
         return {error};
     } finally {
         await conn.release();
     }
-};
 
-const getUserDetail = async (email, roleId) => {
-    try {
-        if (roleId) {
-            const [users] = await pool.query('SELECT * FROM user WHERE email = ? AND role_id = ?', [email, roleId]);
-            return users[0];
-        } else {
-            const [users] = await pool.query('SELECT * FROM user WHERE email = ?', [email]);
-            return users[0];
-        }
-    } catch (e) {
-        return null;
-    }
-};
+}
 
-const getFacebookProfile = async function(accessToken){
-    try {
-        let res = await got('https://graph.facebook.com/me?fields=id,name,email&access_token=' + accessToken, {
-            responseType: 'json'
-        });
-        return res.body;
-    } catch (e) {
-        console.log(e);
-        throw('Permissions Error: facebook access token is wrong');
-    }
-};
 
 module.exports = {
     USER_ROLE,
     signUp,
     nativeSignIn,
-    facebookSignIn,
     getUserDetail,
-    getFacebookProfile,
+    updateUserInfo,
+    updateUserImage,
 };

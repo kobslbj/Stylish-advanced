@@ -5,9 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import { useQuery } from "@tanstack/react-query";
 import { ProductCart } from "../../types/productCartType";
 import useTappay from "../../hooks/useTappay";
 import { CartCountContext } from "../../contexts/CartCountContext";
+import { fetchUserProfile } from "../../utils/api";
 
 type Form = {
   name: string;
@@ -17,16 +20,12 @@ type Form = {
   time: string;
 };
 
-const emailRegex =
-  /(?<zipcode>(^\d{5}|^\d{3})?)(?<city>\D+[縣市])(?<district>\D+?(市區|鎮區|鎮市|[鄉鎮市區]))(?<others>.+)/;
-
 const schema = z.object({
   name: z.string().min(2).max(255),
   phoneNumber: z
     .string()
-    .length(10, "手機格式不正確")
-    .regex(/^09\d{8}$/, "手機格式不正確"),
-  address: z.string().regex(emailRegex, "請輸入正確的地址格式"),
+    .length(10, "手機格式不正確"),
+  address: z.string(),
   email: z.string().email(),
   time: z.enum(["08:00-12:00", "14:00-18:00", "不指定"]),
 });
@@ -41,6 +40,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   useTappay();
+
+  const { data } = useQuery({
+    queryFn: () => fetchUserProfile(),
+    queryKey: ["user", Cookies.get("user_id")],
+  });
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -62,7 +66,17 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<Form>({ resolver: zodResolver(validationScheme) });
+
+  useEffect(() => {
+    if (data) {
+      setValue("name", data.name);
+      setValue("address", data.address);
+      setValue("email", data.email);
+      setValue("phoneNumber", data.phone_number);
+    }
+  }, [data, setValue]);
   const freight = 0;
 
   function transformCartItems(cartItems: ProductCart[]) {
@@ -85,7 +99,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
     const tappayStatus = TPDirect.card.getTappayFieldsStatus();
     console.log(tappayStatus);
     if (tappayStatus.canGetPrime === false) {
-      alert("can not get prime");
+      Swal.fire("can not get prime", "error");
     }
     try {
       const prime = await new Promise<string>((resolve) => {
@@ -114,14 +128,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
           list,
         },
       };
-      console.log(requestBody);
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/order/checkout`, requestBody, {
         headers: {
           Authorization: `Bearer ${Cookies.get("token")}`,
         },
       });
       console.log(response.data.data);
-      navigate(`/thankyou?order_id=${response.data.data.number}&time=${response.data.data.time}`);
+      navigate(`/thankyou?order_id=${response.data.data.number}`);
     } catch (error) {
       console.log(error);
     }
@@ -146,7 +159,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
                   errors.name && errorInput
                 }`}
                 disabled={disabled}
-                defaultValue={Cookies.get("user_name") || ""}
                 {...register("name")}
               />
             </label>
@@ -185,7 +197,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartUpdate, setCartUpdate }) => {
                   errors.email && errorInput
                 }`}
                 disabled={disabled}
-                defaultValue={Cookies.get("user_email") || ""}
                 {...register("email")}
               />
               {errors.email && <span className="text-red-500">{errors.email.message}</span>}
