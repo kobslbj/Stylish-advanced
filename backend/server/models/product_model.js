@@ -139,6 +139,41 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
+const panicBuying = async (userId) => {
+
+}
+
+const setKillProduct = async (name, number) => {
+    const conn = await pool.getConnection();
+    try {
+        // 插入商品資訊到 MySQL 中的 products 表格
+        const [result] = await conn.query('INSERT INTO killProducts (productName, number) VALUES (?, ?)', [name, number]);
+
+        console.log(`Product ${name} added successfully with ID: ${result.insertId}`);
+        await conn.end();
+        return result.insertId;
+
+    } catch (error) {
+        console.error('Error adding product:', error);
+        return -1;
+    }
+
+
+}
+
+const InsertOrderListToDB = async (product, user) => {
+    const conn = await pool.getConnection();
+    try {
+        for (let i = 0; i < user.length; i++) {
+            const [result] = await conn.query('INSERT INTO orderlist (productName, userName) VALUES (?, ?)', [product, user[i]]);
+            console.log(`${product} added successfully with ID: ${result.insertId}`);
+            //return result.insertId
+        }
+    } catch (error) {
+        console.error('Error adding product:', error);
+        return -1;
+    }
+}
 
 
 module.exports = {
@@ -150,4 +185,6 @@ module.exports = {
     getHotProducts,
     getProductsVariants,
     getProductsImages,
+    setKillProduct,
+    InsertOrderListToDB,
 };

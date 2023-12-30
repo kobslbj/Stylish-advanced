@@ -12,6 +12,9 @@ const {
     createComment,
     likeComment,
     comparePrice,
+    panicBuying,
+    setKillProduct,
+    InsertOrderListToDB,
 } = require('../controllers/product_controller');
 
 
@@ -33,5 +36,16 @@ router.route('/products/likeComment')
 // 比價 API
 router.route('/products/comparePrice')
     .post(wrapAsync(comparePrice))
+
+// 搶購 API
+router.route('/products/panicBuying')
+    .post(wrapAsync(panicBuying))
+// 設定搶購商品 API
+router.route('/products/setKillProduct')
+    .post(wrapAsync(setKillProduct))
+
+// 把搶購訂單存到DB
+router.route('/product/InsertOrderListToDB')
+    .post(wrapAsync(InsertOrderListToDB))
 
 module.exports = router;
