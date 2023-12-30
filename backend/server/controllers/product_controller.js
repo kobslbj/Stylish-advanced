@@ -397,16 +397,16 @@ const setKillProduct = async (req, res) => {
     console.log(item.name);
     console.log(item.number);
     await prepare(item); // 要放入item的名字 跟 數量
-    const killProductsId = await Product.setKillProduct(
-        item.name,
-        item.number
-    )
-
-    if (killProductsId === -1) {
-        res.send({ "message": "秒殺商品設定錯誤" })
-    } else {
-        res.send({ "message": "秒殺商品設定成功" })
-    }
+    // const killProductsId = await Product.setKillProduct(
+    //     item.name,
+    //     item.number
+    // )
+    res.send({ "message": "秒殺商品設定成功" })
+    // if (killProductsId === -1) {
+    //     res.send({ "message": "秒殺商品設定錯誤" })
+    // } else {
+    //     res.send({ "message": "秒殺商品設定成功" })
+    // }
 }
 
 module.exports = {
