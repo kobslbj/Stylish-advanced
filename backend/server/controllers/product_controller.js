@@ -396,7 +396,7 @@ const setKillProduct = async (req, res) => {
     const item = req.body;
     console.log(item.name);
     console.log(item.number);
-    await prepare(item); // 要放入item的名字 跟 數量
+    await prepare(item); // 要放入item的名字 跟 數量 到redis中
     // const killProductsId = await Product.setKillProduct(
     //     item.name,
     //     item.number
