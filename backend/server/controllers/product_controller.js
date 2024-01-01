@@ -2,7 +2,7 @@ const _ = require('lodash');
 const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
-const puppeteer = require('puppeteer');
+const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const Redis = require('ioredis');
 
@@ -354,51 +354,64 @@ const getMayLikeProducts = async (req, res) => {
 
 // 比價  API
 const comparePrice = async (req, res) => {
-    console.log(req.body.searchword);
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-    await page.goto(`https://www.findprice.com.tw/g/${req.body.searchword}`);
-    //console.log(page.content());
-    const itemData = await page.evaluate(() => {
-        let data = [];
+    const keyword = req.body.searchword;
+    const source = await fetch(`https://www.findprice.com.tw/g/${keyword}`)
+    const text = await source.text();
+    const dom = new JSDOM(text);
+    const document = dom.window.document;
+    const p_div = document.querySelector("#p_div");
+    const h_div = document.querySelector("#h_div");
+    const g_div = document.querySelector("#g_div");
+    const itemData = [];
 
-        let divHotDetails = document.querySelector(".divHotDetail")
+    if (p_div) {
+        const divPromoGoods = p_div.querySelector(".divPromoGoods");
+        for (let i = 0; i < divPromoGoods.length; i++) {
+            const temp = {};
+            temp.shopPic = divPromoGoods[i].querySelector(".mIcon").src;
+            temp.shopName = divPromoGoods[i].querySelector(".mname").textContent;
+            temp.price = divPromoGoods[i].querySelector(".rec-price-20").textContent;
+            temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/, '').trim();
+            temp.imageUrl = divPromoGoods[i].querySelector(".searchImg").src;
+            itemData.push(temp);
+        }
+    }
 
-        if (divHotDetails) {
-            let divHotDetailList = divHotDetails.querySelectorAll(".divHotDetailList")
-            for (let i = 0; i < divHotDetailList.length - 1; i++) {
-                let temp = {}
-                // console.log(divHotDetailList[i].querySelector(".mIcon").src)
-                // console.log(divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent)
-                // console.log(divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent)
-                temp.shopPic = divHotDetailList[i].querySelector(".mIcon").src;
-                temp.shopName = divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent;
-                temp.price = divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent;
-                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
-                data.push(temp);
+    if (h_div) {
+        const divHotGoods = h_div.querySelectorAll(".divHotGoods");
+        for (let i = 0; i < divHotGoods.length; i++) {
+            const divHotDetailList = divHotGoods[i].querySelectorAll(".divHotDetailList");
+            for (let j = 0; j < divHotDetailList.length; j++) {
+                const temp = {};
+                if (divHotDetailList[j].querySelector(".mIcon")) {
+                    temp.shopPic = divHotDetailList[j].querySelector(".mIcon").src;
+                    temp.shopName = divHotDetailList[j].querySelector(".divHotDetailListTitle").textContent;
+                    temp.price = divHotDetailList[j].querySelector(".divHotDetailListPrice").textContent;
+                    temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/g, '').trim();
+                }
+                temp.imageUrl = divHotGoods[i].querySelector(".searchImg").src;
+                itemData.push(temp);
             }
+
         }
-        else {
-            let divGoods = document.querySelectorAll(".divGoods")
-            for (let i = 0; i < divGoods.length; i++) {
-                let temp = {}
-                //console.log(divGoods[i].querySelector(".mIcon").src);  
-                //console.log(divGoods[i].querySelector(".mname").textContent)
-                //console.log(divGoods[i].querySelector(".rec-price-20").textContent)
-                temp.shopPic = divGoods[i].querySelector(".mIcon").src;
-                temp.shopName = divGoods[i].querySelector(".mname").textContent;
-                temp.price = divGoods[i].querySelector(".rec-price-20").textContent;
-                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
-                data.push(temp);
-            }
+    }
+
+    if (g_div) {
+        const divGoods = g_div.querySelectorAll(".divGoods");
+        for (let i = 0; i < divGoods.length; i++) {
+            const temp = {};
+            temp.shopPic = divGoods[i].querySelector(".mIcon").src;
+            temp.shopName = divGoods[i].querySelector(".mname").textContent;
+            temp.price = divGoods[i].querySelector(".rec-price-20").textContent;
+            temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/g, '').trim();
+            temp.imageUrl = divGoods[i].querySelector(".searchImg").src;
+            itemData.push(temp);
         }
-        return data;
-    });
+    }
 
     // 对价格进行排序，选择前五个
     const sortedData = itemData.sort((a, b) => parseFloat(a.price) - parseFloat(b.price)).slice(0, 5);
 
-    console.log(sortedData);
     res.json(sortedData);
 
 
@@ -431,11 +444,11 @@ const InsertOrderListToDB = async (req, res) => {
         // for (let i = 0; i < result.length; i++) {
         //     await Product.InsertOrderListToDB(product,result[i]);
         // }
-        await Product.InsertOrderListToDB(product,result);
-        res.status(200).send({"message":"搶購資料建立完成"})
+        await Product.InsertOrderListToDB(product, result);
+        res.status(200).send({ "message": "搶購資料建立完成" })
     } catch (error) {
         console.error('LRANGE failed:', error);
-        res.status(500).send({"message":"搶購資料建立失敗"})
+        res.status(500).send({ "message": "搶購資料建立失敗" })
     }
 }
 
