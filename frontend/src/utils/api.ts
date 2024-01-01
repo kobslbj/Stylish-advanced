@@ -67,3 +67,20 @@ export async function fetchProductSimilar(productId: any) {
 
   return response.data;
 }
+export async function likeComment(commentId: any) {
+  const url = `${import.meta.env.VITE_API_URL}/products/likeComment`;
+  const body = {
+    commentId
+  };
+
+  try {
+    const response = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${Cookies.get("token")}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error liking comment:", error);
+  }
+}

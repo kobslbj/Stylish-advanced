@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -9,10 +9,11 @@ import NotFound from "../layout/NotFound";
 import ProductDetailSkeleton from "../layout/loading/ProductDetailSkeleton";
 import { ProductCart } from "../../types/productCartType";
 import ProductComment from "../products/ProductComment";
-import ProductCard from "../products/ProductCard";
+import SimilarProductCard from "../products/SimilarProductCard";
 import { fetchProductSimilar } from "../../utils/api";
 
 const ProductDetail = () => {
+  const similarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams();
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
@@ -23,7 +24,7 @@ const ProductDetail = () => {
     isLoading: isLoadingSimilar,
     isError: isErrorSimilar,
   } = useQuery({
-    queryFn: () => fetchProductSimilar(id!),
+    queryFn: () => fetchProductSimilar(id!).then((response) => response.data),
     queryKey: ["similarProducts", id],
   });
 
@@ -43,7 +44,23 @@ const ProductDetail = () => {
     console.log("Is Loading:", isLoadingSimilar);
     console.log("Has Error:", isErrorSimilar);
   }, [similarProducts, isLoadingSimilar, isErrorSimilar]);
-  
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (
+        similarProductsRef.current &&
+        similarProductsRef.current.contains(e.target as Node)
+      ) {
+        e.preventDefault();
+        similarProductsRef.current.scrollLeft += e.deltaY;
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
   if (isError) {
     return (
       <p className="py-48 text-center lg:py-[4.75rem]">
@@ -188,10 +205,11 @@ const ProductDetail = () => {
   const renderSimilarProducts = () => {
     if (isLoadingSimilar) return <p>Loading similar products...</p>;
     if (isErrorSimilar) return <p>Error loading similar products.</p>;
-    if (!similarProducts || similarProducts.length === 0) return <p>No similar products found.</p>;
-  
+    if (!similarProducts || similarProducts.length === 0)
+      return <p>No similar products found.</p>;
+
     return similarProducts.map((product: Product) => (
-      <ProductCard key={product.id} product={product} />
+      <SimilarProductCard key={product.id} product={product} />
     ));
   };
   
@@ -273,16 +291,18 @@ const ProductDetail = () => {
           </p>
           <div className="bg-[#3F3A3A] h-px flex-grow" />
         </div>
-        <ProductComment />
+        <ProductComment productId={id} />
       </div>
       <div>
-        <div className="flex items-center mb-10">
-          <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9">
+        <div className="flex flex-col items-center mb-10 ">
+          <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9 mb-3 mt-3">
             與此商品相關的產品
           </p>
-
           <div className="bg-[#3F3A3A] h-px flex-grow" />
-          <div className="flex flex-wrap justify-start items-center">
+          <div
+            className="w-[1000px] flex flex-row flex-nowrap overflow-x-auto justify-start items-center gap-3 no-scrollbar"
+            ref={similarProductsRef}
+          >
             {renderSimilarProducts()}
           </div>
         </div>

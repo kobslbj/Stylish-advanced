@@ -103,6 +103,7 @@ const createComment = async (req, res) => {
 
     } catch (error) {
         console.error('創建評論時出錯：', error);
+        console.log("123123123123123123123131312312321");
         res.status(500).send({ error: '內部服務器錯誤' });
     }
 };
