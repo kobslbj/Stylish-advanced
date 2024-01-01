@@ -128,6 +128,9 @@ const getSimilarProducts = async (productId) => {
         .filter((data, index) => {
             return data.id !== productId;
         })
+        .sort((a, b) => {
+            return b.similarity - a.similarity;
+        })
         .map((data) => {
             return data.id;
         });
@@ -137,14 +140,14 @@ const getSimilarProducts = async (productId) => {
     FROM product p`;
     const [products] = await pool.query(productQuery);
 
-    products.filter((product) => {
+    const result = products.filter((product) => {
             return productIds.indexOf(product.id) !== -1;
         })
         .sort((a, b) => {
             return productIds.indexOf(a.id) - productIds.indexOf(b.id);
         });
 
-    return products;
+    return result;
 }
 
 // 可能喜歡的商品
@@ -155,6 +158,9 @@ const getMayLikeProducts = async (userId) => {
     const userIds = similarityMatrix[userId]
         .filter((data, index) => {
             return data.id !== userId;
+        })
+        .sort((a, b) => {
+            return b.similarity - a.similarity;
         })
         .map((data) => {
             return data.id;
