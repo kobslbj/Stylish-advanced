@@ -224,6 +224,19 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
+const InsertOrderListToDB = async (product, user) => {
+    const conn = await pool.getConnection();
+    try {
+        for (let i = 0; i < user.length; i++) {
+            const [result] = await conn.query('INSERT INTO orderlist (productName, userName) VALUES (?, ?)', [product, user[i]]);
+            console.log(`${product} added successfully with ID: ${result.insertId}`);
+            //return result.insertId
+        }
+    } catch (error) {
+        console.error('Error adding product:', error);
+        return -1;
+    }
+}
 
 
 module.exports = {
@@ -235,6 +248,7 @@ module.exports = {
     getHotProducts,
     getProductsVariants,
     getProductsImages,
+    InsertOrderListToDB,
     getSimilarProducts,
     getMayLikeProducts,
 };

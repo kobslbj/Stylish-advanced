@@ -3,11 +3,46 @@ const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const Redis = require('ioredis');
+
+// Redis 設定 ///////////////////////////////////////////////
+const redis = new Redis({
+    host: '127.0.0.1',
+    port: 6379,
+    password: ''
+});
+
+redis.on("error", function (error) {
+    console.error(error);
+});
+
+// 參數放要搶購的商品 -> 第一個參數是名字 第三個參數是數量 
+async function prepare(item) {
+    await redis.hmset(item.name, "Total", item.number, "Booked", 0)
+}
 const { buildIBSimilarMatrix } = require('../../util/recommendation/itembased');
 const { buildUBSimilarMatrix } = require('../../util/recommendation/userbased');
 //const puppeteer_extra = require('puppeteer-extra');
 //const pluginStealth = require('puppeteer-extra-plugin-stealth');
 
+const path = require('path');
+const secKillScriptPath = path.join(__dirname, 'secKill.lua');
+const secKillScript = fs.readFileSync(secKillScriptPath);
+
+async function secKill(item_name, user_name) {
+    // 1. 緩存腳本取得 sha1 值
+    const sha1 = await redis.script("load", secKillScript);
+    console.log(sha1);
+
+    // 2. 透過 evalsha 執行腳本
+    // redis Evalsha 命令基本語法如下
+    // EVALSHA sha1 numkeys key [key ...] arg [arg ...] 
+    const temp = await redis.evalsha(sha1, 1, item_name, 1, `${item_name}_OrderList`, user_name);
+    console.log('temp: ', temp);
+    return temp; // 1代表還有貨 0代表沒有貨
+}
+///////////////////////////////////////////////////////////
 
 var options = {
     year: 'numeric',
@@ -71,12 +106,6 @@ const createComment = async (req, res) => {
     try {
         console.log(req.body);
         const { productId, userId, username, userpicture, text, rating } = req.body;
-        // console.log(typeof productId)
-        // console.log(typeof userId)
-        // console.log(typeof username)
-        // console.log(typeof userpicture)
-        // console.log(typeof text)
-        // console.log(typeof rating)
 
         // 假設你有一個 Comment 模型，並有一個類似 createComment 的方法
         // 把要用到資料庫ㄉ操作用到product_model那邊
@@ -375,14 +404,70 @@ const comparePrice = async (req, res) => {
 
 }
 
+// 搶購 API
+const panicBuying = async (req, res) => {
+    console.time('secKill')
+    const data = req.body;
+    console.log(data);
+    console.log(data.userName);
+    console.log(data.productName);
+    const kill = await secKill(data.productName, data.userName);
+    console.timeEnd('secKill')
+    if (kill == 1) {
+        res.status(200).send({ "message": "搶購成功" });
+    } else {
+        res.status(200).send({ 'message': "東西沒了 下次請早" })
+    }
+}
+
+// 把搶購訂單存到DB中
+const InsertOrderListToDB = async (req, res) => {
+    console.log(req.body);
+    const product = req.body.product;
+    try {
+        // 执行 LRANGE 命令
+        const result = await redis.lrange(`${product}_OrderList`, 0, 50);
+        console.log('LRANGE result:', result);
+        // for (let i = 0; i < result.length; i++) {
+        //     await Product.InsertOrderListToDB(product,result[i]);
+        // }
+        await Product.InsertOrderListToDB(product,result);
+        res.status(200).send({"message":"搶購資料建立完成"})
+    } catch (error) {
+        console.error('LRANGE failed:', error);
+        res.status(500).send({"message":"搶購資料建立失敗"})
+    }
+}
+
+// 設置要被秒殺的商品
+const setKillProduct = async (req, res) => {
+    const item = req.body;
+    console.log(item.name);
+    console.log(item.number);
+    await prepare(item); // 要放入item的名字 跟 數量 到redis中
+    // const killProductsId = await Product.setKillProduct(
+    //     item.name,
+    //     item.number
+    // )
+    res.send({ "message": "秒殺商品設定成功" })
+    // if (killProductsId === -1) {
+    //     res.send({ "message": "秒殺商品設定錯誤" })
+    // } else {
+    //     res.send({ "message": "秒殺商品設定成功" })
+    // }
+}
 
 module.exports = {
+    panicBuying,
     likeComment,
     getComment,
     createProduct,
     createComment,
     getProductsWithDetail,
     getProducts,
+    comparePrice,
+    setKillProduct,
+    InsertOrderListToDB,
     getSimilarProducts,
     getMayLikeProducts,
     comparePrice

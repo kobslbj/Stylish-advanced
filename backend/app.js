@@ -26,7 +26,8 @@ morganBody(app);
 app.use(cors());
 
 // API routes
-app.use('/api/' + API_VERSION, rateLimiterRoute, [
+//rateLimiterRoute,
+app.use('/api/' + API_VERSION,  [
     require('./server/routes/admin_route'),
     require('./server/routes/product_route'),
     require('./server/routes/marketing_route'),
