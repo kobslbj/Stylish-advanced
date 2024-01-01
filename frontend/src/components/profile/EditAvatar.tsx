@@ -32,13 +32,15 @@ const EditAvatar: React.FC<EditAvatarProps> = ({ file, setShowEditPicture }) => 
           const formData = new FormData();
           formData.append("id", Cookies.get("user_id")!);
           formData.append("image", editedFile);
-          await axios.put(
+          const response = await axios.put(
             `${import.meta.env.VITE_API_URL}/user/picture`,
             formData,
             {
               headers: { Authorization: `Bearer ${Cookies.get("token")}`, "Content-Type": "multipart/form-data" },
             },
           );
+          const maxAge = { expires: 30 };
+          Cookies.set("user_picture", response.data.picture, maxAge);
         }
       }
     },

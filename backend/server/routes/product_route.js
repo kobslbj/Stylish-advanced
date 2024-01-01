@@ -8,6 +8,8 @@ const S3upload = uploadAWS.fields([
 
 const {
     getProducts,
+    getSimilarProducts,
+    getMayLikeProducts,
     getComment,
     createComment,
     likeComment,
@@ -22,12 +24,20 @@ const {
 router.route('/products/getComment')
     .get(wrapAsync(getComment))
 
+// 拿到相似商品
+router.route('/products/similar')
+    .get(wrapAsync(getSimilarProducts));
+
+// 可能喜歡的商品
+router.route('/products/maylike')
+    .get(wrapAsync(getMayLikeProducts));
+
 router.route('/products/:category')
     .get(wrapAsync(getProducts));
 
 // 創建評論
 router.route('/products/createComment')
-    .post(S3upload, wrapAsync(createComment))
+    .post(S3upload, wrapAsync(createComment));
 
 // 點讚評論的API
 router.route('/products/likeComment')

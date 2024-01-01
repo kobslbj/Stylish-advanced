@@ -1,59 +1,22 @@
 import React, { useState } from "react";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { useQuery } from "@tanstack/react-query";
+import Cookies from "js-cookie";
+import { fetchOrderHistory } from "../../utils/api";
 import OrderItem from "./OrderItem";
+import { Order } from "../../types/orderType";
 
-// fake data
-const orders = [
-  {
-    number: 1124327251989,
-    status: 0,
-    time: "2023-12-25 10:26:24",
-    total: 1299,
-    recipient_time: "不指定",
-    list: [
-      {
-        id: "201807202157",
-        name: "活力花紋長筒牛仔褲",
-        price: 1299,
-        image: "http://localhost:3000/assets/201807202157/main.jpg",
-        color_name: "藍色",
-        size: "M",
-        qty: 1,
-      },
-    ],
-  },
-  {
-    number: 1124327251990,
-    status: 0,
-    time: "2023-12-25 10:26:24",
-    total: 1299,
-    recipient_time: "不指定",
-    list: [
-      {
-        id: "201807202157",
-        name: "活力花紋長筒牛仔褲",
-        image: "http://localhost:3000/assets/201807202157/main.jpg",
-        price: 1299,
-        color_name: "藍色",
-        size: "M",
-        qty: 2,
-      },
-      {
-        id: "201807202157",
-        name: "活力花紋長筒牛仔褲",
-        image: "http://localhost:3000/assets/201807202157/main.jpg",
-        price: 1299,
-        color_name: "藍色",
-        size: "M",
-        qty: 2,
-      },
-    ],
-  },
-];
 const OrderTable = () => {
-  const [expandedOrders, setExpandedOrders] = useState<number[]>([]);
+  const [expandedOrders, setExpandedOrders] = useState<string[]>([]);
+  const userId = Cookies.get("user_id");
+  const { data, isLoading, isError } = useQuery({
+    queryFn: () => fetchOrderHistory(userId!),
+    queryKey: ["orders", userId],
+  });
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p className="py-40 text-center lg:py-[4rem]">500 Internal Server Error</p>;
 
-  const toggleOrderDetails = (orderNumber: number) => {
+  const toggleOrderDetails = (orderNumber: string) => {
     setExpandedOrders((prevExpandedOrders) => {
       if (prevExpandedOrders.includes(orderNumber)) {
         return prevExpandedOrders.filter((number) => number !== orderNumber);
@@ -75,7 +38,7 @@ const OrderTable = () => {
         </tr>
       </thead>
       <tbody className="py-6">
-        {orders.map((order) => (
+        {data.map((order:Order) => (
           <React.Fragment key={order.number}>
             <tr className="border-b">
               <td className="px-6 py-4">{order.number}</td>
