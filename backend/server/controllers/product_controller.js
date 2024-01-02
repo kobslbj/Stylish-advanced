@@ -513,21 +513,6 @@ const getAllSeckillProduct = async (req, res) => {
 
 }
 
-// 拿秒殺商品的數量
-const getSeckillNumber = async (req, res) => {
-    console.log(req.query.name)
-    console.log("get秒殺商品數量")
-    console.log()
-    const result = await Product.getSeckillNumber(req.query.name);
-
-    if (result === -1) {
-        res.status(500).send({ error: '拿不到數量' })
-    } else {
-        console.log(result);
-        res.status(200).send({ result });
-    }
-}
-
 module.exports = {
     panicBuying,
     likeComment,
@@ -541,7 +526,6 @@ module.exports = {
     InsertOrderListToDB,
     getKillProduct,
     getAllSeckillProduct,
-    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
     comparePrice

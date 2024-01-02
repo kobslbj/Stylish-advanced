@@ -284,21 +284,6 @@ const getAllSeckillProduct = async () => {
     }
 }
 
-// 拿想要的秒殺商品數量
-const getSeckillNumber = async (name) => {
-    const conn = await pool.getConnection();
-    try {
-        const [result] = await conn.query(
-            `SELECT number FROM seckillproduct WHERE name = '${name}'`
-        )
-        console.log(result);
-        return result;
-    } catch (error) {
-        console.error('Error getting seckill number: ', error);
-        return -1;
-    }
-}
-
 module.exports = {
     createComment,
     getComment,
@@ -312,7 +297,6 @@ module.exports = {
     setKillProduct,
     getKillProduct,
     getAllSeckillProduct,
-    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
 };
