@@ -274,9 +274,7 @@ const getKillProduct = async (name) => {
     console.log(name);
     const conn = await pool.getConnection();
     try {
-        const [result] = await conn.query(
-            `SELECT * FROM seckillproduct WHERE name = '${name}'`
-        )
+        const [result] = await conn.query(`SELECT * FROM seckillproduct WHERE name = ?`, [name]);
         console.log(result);
         return result;
     } catch (error) {
