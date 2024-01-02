@@ -10,8 +10,10 @@ import ProductDetailSkeleton from "../layout/loading/ProductDetailSkeleton";
 import { ProductCart } from "../../types/productCartType";
 import ProductComment from "../products/ProductComment";
 import SimilarProductCard from "../products/SimilarProductCard";
-import { fetchProductSimilar } from "../../utils/api";
+import { fetchProductSimilar, fetchProductMaylike } from "../../utils/api";
+import Cookies from "js-cookie";
 
+const user_id = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams();
@@ -27,7 +29,15 @@ const ProductDetail = () => {
     queryFn: () => fetchProductSimilar(id!).then((response) => response.data),
     queryKey: ["similarProducts", id],
   });
-
+  const {
+    data: maylikeProducts,
+    isLoading: isLoadingMaylike,
+    isError: isErrorMaylike,
+  } = useQuery({
+    queryFn: () =>
+      fetchProductMaylike(user_id!).then((response) => response.data),
+    queryKey: ["maylikeProducts", user_id],
+  });
   const { incrementCartCount } = useContext(CartCountContext);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedColorName, setSelectedColorName] = useState("");
@@ -212,8 +222,16 @@ const ProductDetail = () => {
       <SimilarProductCard key={product.id} product={product} />
     ));
   };
-  
+  const renderMaylikeProducts = () => {
+    if (isLoadingMaylike) return <p>Loading may like products...</p>;
+    if (isErrorMaylike) return <p>Error loading may like products.</p>;
+    if (!maylikeProducts || maylikeProducts.length === 0)
+      return <p>No may like products found.</p>;
 
+    return maylikeProducts.map((product: Product) => (
+      <SimilarProductCard key={product.id} product={product} />
+    ));
+  };
   return (
     <div className="max-w-[60rem] m-auto mb-[3.063rem] ">
       <div className="lg:flex lg:flex-row items-center lg:mt-[65px] mb-[3.146rem]">
@@ -306,11 +324,17 @@ const ProductDetail = () => {
             {renderSimilarProducts()}
           </div>
         </div>
-        <div className="flex items-center mb-10">
-          <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9">
+        <div className="flex flex-col items-center mb-10">
+          <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9 mb-3 mt-3">
             你可能也會喜歡這些商品
           </p>
           <div className="bg-[#3F3A3A] h-px flex-grow" />
+          <div
+            className="w-[1000px] flex flex-row flex-nowrap overflow-x-auto justify-start items-center gap-3 no-scrollbar"
+            ref={similarProductsRef}
+          >
+            {renderMaylikeProducts()}
+          </div>
         </div>
       </div>
     </div>

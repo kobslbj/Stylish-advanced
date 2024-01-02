@@ -1,6 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+console.log(Cookies.get("user_id"))
 export async function fetchProducts(endpoint: string, keyword: string | null, pageParam: number) {
   const url = keyword
     ? `${import.meta.env.VITE_API_URL}/products/search`
@@ -67,6 +68,23 @@ export async function fetchProductSimilar(productId: any) {
 
   return response.data;
 }
+export async function fetchProductMaylike(UserId: any) {
+  const url = `${import.meta.env.VITE_API_URL}/products/maylike`;
+  const headers = {
+    Authorization: `Bearer ${Cookies.get("token")}`,
+  };
+
+  const body = {
+    id: UserId
+  };
+
+  const response = await axios.get(url, {
+    headers: headers,
+    params: body
+  });
+
+  return response.data;
+}
 export async function likeComment(commentId: any) {
   const url = `${import.meta.env.VITE_API_URL}/products/likeComment`;
   const body = {
@@ -84,3 +102,47 @@ export async function likeComment(commentId: any) {
     console.error("Error liking comment:", error);
   }
 }
+export async function dislikeComment(commentId: any) {
+  const url = `${import.meta.env.VITE_API_URL}/products/DislikeComment`;
+
+  try {
+    const response = await axios.delete(url, {
+      headers: {
+        Authorization: `Bearer ${Cookies.get("token")}`,
+      },
+      data: {
+        commentId,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error disliking comment:", error);
+    throw error;
+  }
+}
+
+export async function fetchAllSeckillProducts() {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/products/getAllSeckillProduct`);
+    return response.data.result; 
+  } catch (error) {
+    console.error("Error fetching seckill products:", error);
+    throw error;
+  }
+}
+
+export async function panicBuyProduct(userName: string, productName: string) {
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/products/panicBuying`, {
+      userName,
+      productName
+    });
+    return response.data.message;
+  } catch (error) {
+    console.error("Error during panic buying:", error);
+    throw error;
+  }
+}
+
+
+

@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { fetchProductComments, likeComment } from "../../utils/api";
+import {
+  fetchProductComments,
+  likeComment,
+  dislikeComment,
+} from "../../utils/api";
 import Star from "../../assets/images/star.png";
 import RedHeart from "../../assets/images/redheart.png";
 import Heart from "../../assets/images/heart.png";
@@ -45,7 +49,13 @@ const ProductComment = ({ productId }) => {
 
   const toggleLiked = async (commentId: number, index: number) => {
     try {
-      const response = await likeComment(commentId);
+      let response;
+      if (comments[index].isLiked) {
+        response = await dislikeComment(commentId);
+      } else {
+        response = await likeComment(commentId);
+      }
+
       if (response && response.success) {
         setComments((comments) =>
           comments.map((comment, idx) => {
@@ -58,9 +68,6 @@ const ProductComment = ({ productId }) => {
                 ...comment,
                 isLiked: newIsLiked,
                 likes: newLikes,
-                isLikedNumber: newIsLiked
-                  ? comment.isLikedNumber + 1
-                  : comment.isLikedNumber - 1,
               };
             }
             return comment;
@@ -68,7 +75,7 @@ const ProductComment = ({ productId }) => {
         );
       }
     } catch (error) {
-      console.error("Error toggling like:", error);
+      console.error("Error toggling like/dislike:", error);
     }
   };
 
@@ -118,7 +125,10 @@ const ProductComment = ({ productId }) => {
           <p className="font-bold mt-2">{comment.text}</p>
           <div className="flex flex-row gap-1 mt-2">
             {comment.images_url.slice(0, 3).map((imageUrl, index) => (
-              <div key={index} className=" w-[20rem] h-[12rem]  rounded-[1rem] ">
+              <div
+                key={index}
+                className=" w-[20rem] h-[12rem]  rounded-[1rem] "
+              >
                 <img
                   className="w-full h-full object-cover"
                   src={imageUrl}
