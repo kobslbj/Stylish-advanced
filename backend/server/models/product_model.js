@@ -141,8 +141,8 @@ const getSimilarProducts = async (productId) => {
     const [products] = await pool.query(productQuery);
 
     const result = products.filter((product) => {
-            return productIds.indexOf(product.id) !== -1;
-        })
+        return productIds.indexOf(product.id) !== -1;
+    })
         .sort((a, b) => {
             return productIds.indexOf(a.id) - productIds.indexOf(b.id);
         });
@@ -165,19 +165,19 @@ const getMayLikeProducts = async (userId) => {
         .map((data) => {
             return data.id;
         });
-    
+
     const userQuery = `SELECT u.id userId, p.id id, p.category, p.title, p.description,
     p.price, p.texture, p.wash, p.place, p.note, p.story, p.main_image, c.rating
     FROM user u
     JOIN comment c ON u.id = c.userId
     JOIN product p ON p.id = c.productId`;
-    
+
     const [data] = await pool.query(userQuery);
 
     let temp = new Set();
     const result = data.filter((item) => {
-            return item.userId !== userId;
-        })
+        return item.userId !== userId;
+    })
         // User with higher similarity will be placed in front of the array
         // If there are multiple records for an user make comment to some products, we need to sort the records by rating
         .sort((a, b) => {
@@ -192,7 +192,7 @@ const getMayLikeProducts = async (userId) => {
 
             // If there is no duplicate record, return the record with max rating, which has been sorted before
             if (duplicate === false) {
-                
+
                 temp.add(item.userId + '-' + item.id);
 
                 return item;
@@ -224,16 +224,29 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
-const InsertOrderListToDB = async (product, user) => {
+const InsertOrderListToDB = async (product, users) => {
     const conn = await pool.getConnection();
     try {
-        for (let i = 0; i < user.length; i++) {
-            const [result] = await conn.query('INSERT INTO orderlist (productName, userName) VALUES (?, ?)', [product, user[i]]);
-            console.log(`${product} added successfully with ID: ${result.insertId}`);
-            //return result.insertId
+        conn.query("START TRANSACTION");
+        let sql = 'INSERT INTO orderlist (productName, userName) VALUES';
+        let data = [];
+
+        for (let i = 0; i < users.length; i++) {
+            if (i === users.length - 1) {
+                sql = sql + '(?, ?);'
+            } else {
+                sql = sql + '(?, ?),'
+            }
+            data.push(product, users[i]);
         }
+
+        const [result] = await conn.query(sql, data);
+        console.log(`${product} added successfully with ID: ${result.insertId}`);
+        conn.query("COMMIT");
+        // return result.insertId
     } catch (error) {
         console.error('Error adding product:', error);
+        conn.query("ROLLBACK");
         return -1;
     }
 }
@@ -242,13 +255,16 @@ const InsertOrderListToDB = async (product, user) => {
 const setKillProduct = async (name, price, number, picture) => {
     const conn = await pool.getConnection();
     try {
+        conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'INSERT INTO seckillproduct(name,price,number,picture) VALUES (?,?,?,?)',
             [name, price, number, picture]
         )
+        conn.query("COMMIT");
         return result.insertId;
     } catch (error) {
         console.error('Error insert Seckill Product:', error);
+        conn.query("ROLLBACK");
         return -1;
     }
 }
@@ -306,5 +322,5 @@ module.exports = {
 // 做出getSeckillproduct的API讓前端顯示
 // 做出getSeckillnumber讓前端顯示剩餘的庫存
 // 存完訂單資料之後 就把redis裡面flush掉
-    
+
 

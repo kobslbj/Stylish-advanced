@@ -19,11 +19,16 @@ const {
     InsertOrderListToDB,
     getKillProduct,
     getAllSeckillProduct,
+    getSeckillFromRedis
 } = require('../controllers/product_controller');
 
 // 拿秒殺商品
 router.route('/products/getKillProduct/')
     .get(wrapAsync(getKillProduct))
+
+// 搶購商品還剩下多少 -> 從Redis拿數量
+router.route('/products/getSeckillFromRedis')
+    .get(wrapAsync(getSeckillFromRedis))
 
 // 拿所有秒殺商品
 router.route('/products/getAllSeckillProduct')

@@ -5,6 +5,7 @@ const pageSize = 6;
 const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const Redis = require('ioredis');
+const { changeSecKillNumber } = require('../../util/socket');
 
 // Redis 設定 ///////////////////////////////////////////////
 const redis = new Redis({
@@ -420,13 +421,30 @@ const comparePrice = async (req, res) => {
 
 // 搶購 API
 const panicBuying = async (req, res) => {
-    console.time('secKill')
+    // console.time('secKill')
     const data = req.body;
     console.log(data);
     console.log(data.userName);
     console.log(data.productName);
     const kill = await secKill(data.productName, data.userName);
-    console.timeEnd('secKill')
+
+    let total = 0;
+    let booked = 0;
+    await redis.hget(`${data.productName}`, "Total").then(total_value => {
+        console.log("Total:", total_value);
+        total = total_value;
+    });
+
+    await redis.hget(`${data.productName}`, "Booked").then(booked_value => {
+        console.log("Booked:", booked_value);
+        booked = booked_value;
+    });
+
+    const remain = total - booked;
+
+    // socket io emit event
+    changeSecKillNumber(data.productName, remain);
+    // console.timeEnd('secKill')
     if (kill == 1) {
         res.status(200).send({ "message": "搶購成功" });
     } else {
@@ -440,14 +458,25 @@ const InsertOrderListToDB = async (req, res) => {
     const product = req.body.product;
     try {
         // 执行 LRANGE 命令
-        const result = await redis.lrange(`${product}_OrderList`, 0, 50);
-        console.log('LRANGE result:', result);
-        // for (let i = 0; i < result.length; i++) {
-        //     await Product.InsertOrderListToDB(product,result[i]);
-        // }
-        await Product.InsertOrderListToDB(product, result);
-        // 清空整個 Redis 數據庫
-        await redis.flushall(); // 或者使用 await redis.flushdb();
+        const users = await redis.lrange(`${product}_OrderList`, 0, -1);
+        console.log('LRANGE users:', users);
+        await Product.InsertOrderListToDB(product, users);
+
+        let total = 0;
+        let booked = 0;
+        await redis.hget(`${product}`, "Total").then(total_value => {
+            console.log("Total:", total_value);
+            total = total_value;
+        });
+
+        await redis.hget(`${product}`, "Booked").then(booked_value => {
+            console.log("Booked:", booked_value);
+            booked = booked_value;
+        });
+        if (total - booked === 0) {
+            await redis.del(`${product}`);
+        }
+        // await redis.flushall(); // 或者使用 await redis.flushdb();
         res.status(200).send({ "message": "搶購資料建立完成" })
     } catch (error) {
         console.error('LRANGE failed:', error);
@@ -513,6 +542,29 @@ const getAllSeckillProduct = async (req, res) => {
 
 }
 
+const getSeckillFromRedis = async (req, res) => {
+
+    let total = 0;
+    let booked = 0;
+
+    console.log(req.query.name);
+    await redis.hget(`${req.query.name}`, "Total").then(total_value => {
+        console.log("Total:", total_value);
+        total = total_value;
+    });
+
+    await redis.hget(`${req.query.name}`, "Booked").then(booked_value => {
+        console.log("Booked:", booked_value);
+        booked = booked_value;
+    });
+
+    res.send({
+        name: req.query.name,
+        remain: total - booked
+    })
+
+}
+
 module.exports = {
     panicBuying,
     likeComment,
@@ -528,7 +580,8 @@ module.exports = {
     getAllSeckillProduct,
     getSimilarProducts,
     getMayLikeProducts,
-    comparePrice
+    comparePrice,
+    getSeckillFromRedis
 };
 
 
