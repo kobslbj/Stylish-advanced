@@ -2,9 +2,10 @@ const _ = require('lodash');
 const util = require('../../util/util');
 const Product = require('../models/product_model');
 const pageSize = 6;
-const puppeteer = require('puppeteer');
+const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const Redis = require('ioredis');
+const { changeSecKillNumber } = require('../../util/socket');
 
 // Redis 設定 ///////////////////////////////////////////////
 const redis = new Redis({
@@ -375,51 +376,64 @@ const getMayLikeProducts = async (req, res) => {
 
 // 比價  API
 const comparePrice = async (req, res) => {
-    console.log(req.body.searchword);
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-    await page.goto(`https://www.findprice.com.tw/g/${req.body.searchword}`);
-    //console.log(page.content());
-    const itemData = await page.evaluate(() => {
-        let data = [];
+    const keyword = req.body.searchword;
+    const source = await fetch(`https://www.findprice.com.tw/g/${keyword}`)
+    const text = await source.text();
+    const dom = new JSDOM(text);
+    const document = dom.window.document;
+    const p_div = document.querySelector("#p_div");
+    const h_div = document.querySelector("#h_div");
+    const g_div = document.querySelector("#g_div");
+    const itemData = [];
 
-        let divHotDetails = document.querySelector(".divHotDetail")
+    if (p_div) {
+        const divPromoGoods = p_div.querySelector(".divPromoGoods");
+        for (let i = 0; i < divPromoGoods.length; i++) {
+            const temp = {};
+            temp.shopPic = divPromoGoods[i].querySelector(".mIcon").src;
+            temp.shopName = divPromoGoods[i].querySelector(".mname").textContent;
+            temp.price = divPromoGoods[i].querySelector(".rec-price-20").textContent;
+            temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/, '').trim();
+            temp.imageUrl = divPromoGoods[i].querySelector(".searchImg").src;
+            itemData.push(temp);
+        }
+    }
 
-        if (divHotDetails) {
-            let divHotDetailList = divHotDetails.querySelectorAll(".divHotDetailList")
-            for (let i = 0; i < divHotDetailList.length - 1; i++) {
-                let temp = {}
-                // console.log(divHotDetailList[i].querySelector(".mIcon").src)
-                // console.log(divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent)
-                // console.log(divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent)
-                temp.shopPic = divHotDetailList[i].querySelector(".mIcon").src;
-                temp.shopName = divHotDetailList[i].querySelector(".divHotDetailListTitle").textContent;
-                temp.price = divHotDetailList[i].querySelector(".divHotDetailListPrice").textContent;
-                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
-                data.push(temp);
+    if (h_div) {
+        const divHotGoods = h_div.querySelectorAll(".divHotGoods");
+        for (let i = 0; i < divHotGoods.length; i++) {
+            const divHotDetailList = divHotGoods[i].querySelectorAll(".divHotDetailList");
+            for (let j = 0; j < divHotDetailList.length; j++) {
+                const temp = {};
+                if (divHotDetailList[j].querySelector(".mIcon")) {
+                    temp.shopPic = divHotDetailList[j].querySelector(".mIcon").src;
+                    temp.shopName = divHotDetailList[j].querySelector(".divHotDetailListTitle").textContent;
+                    temp.price = divHotDetailList[j].querySelector(".divHotDetailListPrice").textContent;
+                    temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/g, '').trim();
+                }
+                temp.imageUrl = divHotGoods[i].querySelector(".searchImg").src;
+                itemData.push(temp);
             }
+
         }
-        else {
-            let divGoods = document.querySelectorAll(".divGoods")
-            for (let i = 0; i < divGoods.length; i++) {
-                let temp = {}
-                //console.log(divGoods[i].querySelector(".mIcon").src);  
-                //console.log(divGoods[i].querySelector(".mname").textContent)
-                //console.log(divGoods[i].querySelector(".rec-price-20").textContent)
-                temp.shopPic = divGoods[i].querySelector(".mIcon").src;
-                temp.shopName = divGoods[i].querySelector(".mname").textContent;
-                temp.price = divGoods[i].querySelector(".rec-price-20").textContent;
-                temp.price = temp.price.replace(/商品選項\(.*?\)/, '').trim();
-                data.push(temp);
-            }
+    }
+
+    if (g_div) {
+        const divGoods = g_div.querySelectorAll(".divGoods");
+        for (let i = 0; i < divGoods.length; i++) {
+            const temp = {};
+            temp.shopPic = divGoods[i].querySelector(".mIcon").src;
+            temp.shopName = divGoods[i].querySelector(".mname").textContent;
+            temp.price = divGoods[i].querySelector(".rec-price-20").textContent;
+            temp.price = temp.price.replace(/商品選項\(\d+\)|[,\$\～]/g, '').trim();
+            temp.imageUrl = divGoods[i].querySelector(".searchImg").src;
+            itemData.push(temp);
         }
-        return data;
-    });
+    }
 
     // 对价格进行排序，选择前五个
     const sortedData = itemData.sort((a, b) => parseFloat(a.price) - parseFloat(b.price)).slice(0, 5);
 
-    console.log(sortedData);
     res.json(sortedData);
 
 
@@ -427,13 +441,30 @@ const comparePrice = async (req, res) => {
 
 // 搶購 API
 const panicBuying = async (req, res) => {
-    console.time('secKill')
+    // console.time('secKill')
     const data = req.body;
     console.log(data);
     console.log(data.userName);
     console.log(data.productName);
     const kill = await secKill(data.productName, data.userName);
-    console.timeEnd('secKill')
+
+    let total = 0;
+    let booked = 0;
+    await redis.hget(`${data.productName}`, "Total").then(total_value => {
+        console.log("Total:", total_value);
+        total = total_value;
+    });
+
+    await redis.hget(`${data.productName}`, "Booked").then(booked_value => {
+        console.log("Booked:", booked_value);
+        booked = booked_value;
+    });
+
+    const remain = total - booked;
+
+    // socket io emit event
+    changeSecKillNumber(data.productName, remain);
+    // console.timeEnd('secKill')
     if (kill == 1) {
         res.status(200).send({ "message": "搶購成功" });
     } else {
@@ -447,14 +478,25 @@ const InsertOrderListToDB = async (req, res) => {
     const product = req.body.product;
     try {
         // 执行 LRANGE 命令
-        const result = await redis.lrange(`${product}_OrderList`, 0, 50);
-        console.log('LRANGE result:', result);
-        // for (let i = 0; i < result.length; i++) {
-        //     await Product.InsertOrderListToDB(product,result[i]);
-        // }
-        await Product.InsertOrderListToDB(product, result);
-        // 清空整個 Redis 數據庫
-        await redis.flushall(); // 或者使用 await redis.flushdb();
+        const users = await redis.lrange(`${product}_OrderList`, 0, -1);
+        console.log('LRANGE users:', users);
+        await Product.InsertOrderListToDB(product, users);
+
+        let total = 0;
+        let booked = 0;
+        await redis.hget(`${product}`, "Total").then(total_value => {
+            console.log("Total:", total_value);
+            total = total_value;
+        });
+
+        await redis.hget(`${product}`, "Booked").then(booked_value => {
+            console.log("Booked:", booked_value);
+            booked = booked_value;
+        });
+        if (total - booked === 0) {
+            await redis.del(`${product}`);
+        }
+        // await redis.flushall(); // 或者使用 await redis.flushdb();
         res.status(200).send({ "message": "搶購資料建立完成" })
     } catch (error) {
         console.error('LRANGE failed:', error);
@@ -520,21 +562,6 @@ const getAllSeckillProduct = async (req, res) => {
 
 }
 
-// 拿秒殺商品的數量
-const getSeckillNumber = async (req, res) => {
-    console.log(req.query.name)
-    console.log("get秒殺商品數量")
-    console.log()
-    const result = await Product.getSeckillNumber(req.query.name);
-
-    if (result === -1) {
-        res.status(500).send({ error: '拿不到數量' })
-    } else {
-        console.log(result);
-        res.status(200).send({ result });
-    }
-}
-
 const getSeckillFromRedis = async (req, res) => {
 
     let total = 0;
@@ -551,7 +578,10 @@ const getSeckillFromRedis = async (req, res) => {
         booked = booked_value;
     });
 
-    res.send({ result: `${req.query.name}剩下 ${total - booked} 個商品` })
+    res.send({
+        name: req.query.name,
+        remain: total - booked
+    })
 
 }
 
@@ -569,7 +599,6 @@ module.exports = {
     InsertOrderListToDB,
     getKillProduct,
     getAllSeckillProduct,
-    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
     comparePrice,

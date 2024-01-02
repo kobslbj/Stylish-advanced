@@ -20,7 +20,6 @@ const {
     InsertOrderListToDB,
     getKillProduct,
     getAllSeckillProduct,
-    getSeckillNumber,
     getSeckillFromRedis
 } = require('../controllers/product_controller');
 
@@ -35,10 +34,6 @@ router.route('/products/getSeckillFromRedis')
 // 拿所有秒殺商品
 router.route('/products/getAllSeckillProduct')
     .get(wrapAsync(getAllSeckillProduct))
-
-// 拿秒殺商品的數量
-router.route('/products/getSeckillNumber')
-    .get(wrapAsync(getSeckillNumber))
 
 // 拿到評論內容
 router.route('/products/getComment')

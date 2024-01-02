@@ -44,6 +44,7 @@
         "got": "^11.1.4",
         "greenlock-express": "^2.7.18",
         "ioredis": "^5.3.2",
+        "jsdom": "^23.0.1",
         "jsonwebtoken": "^8.5.1",
         "mocha": "^7.1.0",
         "morgan-body": "^2.6.6",
@@ -52,9 +53,9 @@
         "natural": "^6.10.4",
         "nodejs-jieba": "^0.1.2",
         "nodemon": "^2.0.4",
-        "puppeteer": "^21.6.1",
         "redis": "^4.0.4",
         "sinon": "^8.1.1",
+        "socket.io": "^4.7.2",
         "stopword": "^2.0.8",
         "validator": "^13.0.0"
     },
@@ -63,5 +64,8 @@
         "eslint-config-prettier": "^8.4.0",
         "eslint-plugin-prettier": "^4.0.0",
         "prettier": "^2.5.1"
+    },
+    "nodemonConfig": {
+        "ext": "js"
     }
 }

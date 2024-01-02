@@ -4,6 +4,7 @@ const { rateLimiterRoute } = require('./util/ratelimiter');
 const Cache = require('./util/cache');
 const { PORT_TEST, PORT, NODE_ENV, API_VERSION } = process.env;
 const port = NODE_ENV == 'test' ? PORT_TEST : PORT;
+const { socketConnection } = require('./util/socket');
 
 // MobileNet Initialization
 require('./util/recommendation/itembased').loadMobileNetModel();
@@ -12,6 +13,8 @@ require('./util/recommendation/itembased').loadMobileNetModel();
 const express = require('express');
 const cors = require('cors');
 const app = express();
+
+
 
 app.set('trust proxy', true);
 // app.set('trust proxy', 'loopback');
@@ -27,7 +30,7 @@ app.use(cors());
 
 // API routes
 //rateLimiterRoute,
-app.use('/api/' + API_VERSION,  [
+app.use('/api/' + API_VERSION, [
     require('./server/routes/admin_route'),
     require('./server/routes/product_route'),
     require('./server/routes/marketing_route'),
@@ -46,8 +49,12 @@ app.use(function (err, req, res, next) {
     res.status(500).send('Internal Server Error');
 });
 
+// Socket.io Initialization
+const server = socketConnection(app);
+
+
 if (NODE_ENV != 'production') {
-    app.listen(port, async () => {
+    server.listen(port, async () => {
         Cache.connect().catch(() => {
             console.log('redis connect fail');
         });
@@ -55,4 +62,4 @@ if (NODE_ENV != 'production') {
     });
 }
 
-module.exports = app;
+module.exports = server;

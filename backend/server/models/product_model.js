@@ -147,6 +147,9 @@ const getSimilarProducts = async (productId) => {
         .filter((data, index) => {
             return data.id !== productId;
         })
+        .sort((a, b) => {
+            return b.similarity - a.similarity;
+        })
         .map((data) => {
             return data.id;
         });
@@ -156,14 +159,14 @@ const getSimilarProducts = async (productId) => {
     FROM product p`;
     const [products] = await pool.query(productQuery);
 
-    products.filter((product) => {
+    const result = products.filter((product) => {
         return productIds.indexOf(product.id) !== -1;
     })
         .sort((a, b) => {
             return productIds.indexOf(a.id) - productIds.indexOf(b.id);
         });
 
-    return products;
+    return result;
 }
 
 // 可能喜歡的商品
@@ -174,6 +177,9 @@ const getMayLikeProducts = async (userId) => {
     const userIds = similarityMatrix[userId]
         .filter((data, index) => {
             return data.id !== userId;
+        })
+        .sort((a, b) => {
+            return b.similarity - a.similarity;
         })
         .map((data) => {
             return data.id;
@@ -237,16 +243,29 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
-const InsertOrderListToDB = async (product, user) => {
+const InsertOrderListToDB = async (product, users) => {
     const conn = await pool.getConnection();
     try {
-        for (let i = 0; i < user.length; i++) {
-            const [result] = await conn.query('INSERT INTO orderlist (productName, userName) VALUES (?, ?)', [product, user[i]]);
-            console.log(`${product} added successfully with ID: ${result.insertId}`);
-            //return result.insertId
+        conn.query("START TRANSACTION");
+        let sql = 'INSERT INTO orderlist (productName, userName) VALUES';
+        let data = [];
+
+        for (let i = 0; i < users.length; i++) {
+            if (i === users.length - 1) {
+                sql = sql + '(?, ?);'
+            } else {
+                sql = sql + '(?, ?),'
+            }
+            data.push(product, users[i]);
         }
+
+        const [result] = await conn.query(sql, data);
+        console.log(`${product} added successfully with ID: ${result.insertId}`);
+        conn.query("COMMIT");
+        // return result.insertId
     } catch (error) {
         console.error('Error adding product:', error);
+        conn.query("ROLLBACK");
         return -1;
     }
 }
@@ -255,13 +274,16 @@ const InsertOrderListToDB = async (product, user) => {
 const setKillProduct = async (name, price, number, picture) => {
     const conn = await pool.getConnection();
     try {
+        conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'INSERT INTO seckillproduct(name,price,number,picture) VALUES (?,?,?,?)',
             [name, price, number, picture]
         )
+        conn.query("COMMIT");
         return result.insertId;
     } catch (error) {
         console.error('Error insert Seckill Product:', error);
+        conn.query("ROLLBACK");
         return -1;
     }
 }
@@ -297,21 +319,6 @@ const getAllSeckillProduct = async () => {
     }
 }
 
-// 拿想要的秒殺商品數量
-const getSeckillNumber = async (name) => {
-    const conn = await pool.getConnection();
-    try {
-        const [result] = await conn.query(
-            `SELECT number FROM seckillproduct WHERE name = '${name}'`
-        )
-        console.log(result);
-        return result;
-    } catch (error) {
-        console.error('Error getting seckill number: ', error);
-        return -1;
-    }
-}
-
 module.exports = {
     createComment,
     getComment,
@@ -326,7 +333,6 @@ module.exports = {
     setKillProduct,
     getKillProduct,
     getAllSeckillProduct,
-    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
 };
