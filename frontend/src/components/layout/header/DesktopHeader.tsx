@@ -18,8 +18,11 @@ const DesktopHeader: React.FC = () => (
         <a href="/men" className="px-14 text-xl font-sans font-normal border-r-2 border-[#3F3A3A] hover:text-brown">
           男裝
         </a>
-        <a href="/accessories" className="font-sans text-xl font-normal px-14 hover:text-brown">
+        <a href="/accessories" className="px-14 text-xl font-sans font-normal border-r-2 border-[#3F3A3A] hover:text-brown">
           配件
+        </a>
+        <a href="/flashsale" className="font-sans text-xl font-normal px-14 hover:text-brown">
+          限時限量搶購
         </a>
       </div>
     </div>
