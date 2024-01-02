@@ -85,6 +85,25 @@ const likeComment = async (commentId) => {
     }
 };
 
+const DislikeComment = async (commentId) => {
+    const conn = await pool.getConnection();
+    console.log('評論的ID是: ', commentId)
+    try {
+        // 更新评论的点赞数量
+        const [result] = await conn.query(
+            'UPDATE comment SET likes = likes - 1 WHERE commentId = ?',
+            [commentId]
+        );
+
+        return result.affectedRows > 0;
+    } catch (error) {
+        console.error('点赞时出错：', error);
+        return false;
+    } finally {
+        await conn.release();
+    }
+}
+
 
 const getProducts = async (pageSize, paging = 0, requirement = {}) => {
     const condition = { sql: '', binding: [] };
@@ -304,6 +323,7 @@ module.exports = {
     createComment,
     getComment,
     likeComment,
+    DislikeComment,
     createProduct,
     getProducts,
     getHotProducts,

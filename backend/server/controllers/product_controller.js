@@ -157,6 +157,26 @@ const likeComment = async (req, res) => {
     }
 }
 
+// 按DisLike
+const DislikeComment = async (req, res) => {
+    console.log(req.body);
+    try {
+        const { commentId } = req.body;
+        console.log(commentId);
+
+        const success = await Product.DislikeComment(commentId);
+
+        if (success) {
+            res.status(200).send({ success: true });
+        } else {
+            res.status(500).send({ error: '点赞失败' });
+        }
+    } catch (error) {
+        console.error('点赞时出错：', error);
+        res.status(500).send({ error: '内部服务器错误' });
+    }
+}
+
 // 拿到評論
 const getComment = async (req, res) => {
     console.log(req.query.id);
@@ -568,6 +588,7 @@ const getSeckillFromRedis = async (req, res) => {
 module.exports = {
     panicBuying,
     likeComment,
+    DislikeComment,
     getComment,
     createProduct,
     createComment,
