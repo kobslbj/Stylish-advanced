@@ -85,6 +85,25 @@ const likeComment = async (commentId) => {
     }
 };
 
+const DislikeComment = async (commentId) => {
+    const conn = await pool.getConnection();
+    console.log('評論的ID是: ', commentId)
+    try {
+        // 更新评论的点赞数量
+        const [result] = await conn.query(
+            'UPDATE comment SET likes = likes - 1 WHERE commentId = ?',
+            [commentId]
+        );
+
+        return result.affectedRows > 0;
+    } catch (error) {
+        console.error('点赞时出错：', error);
+        return false;
+    } finally {
+        await conn.release();
+    }
+}
+
 
 const getProducts = async (pageSize, paging = 0, requirement = {}) => {
     const condition = { sql: '', binding: [] };
@@ -138,8 +157,8 @@ const getSimilarProducts = async (productId) => {
     const [products] = await pool.query(productQuery);
 
     products.filter((product) => {
-            return productIds.indexOf(product.id) !== -1;
-        })
+        return productIds.indexOf(product.id) !== -1;
+    })
         .sort((a, b) => {
             return productIds.indexOf(a.id) - productIds.indexOf(b.id);
         });
@@ -159,19 +178,19 @@ const getMayLikeProducts = async (userId) => {
         .map((data) => {
             return data.id;
         });
-    
+
     const userQuery = `SELECT u.id userId, p.id id, p.category, p.title, p.description,
     p.price, p.texture, p.wash, p.place, p.note, p.story, p.main_image, c.rating
     FROM user u
     JOIN comment c ON u.id = c.userId
     JOIN product p ON p.id = c.productId`;
-    
+
     const [data] = await pool.query(userQuery);
 
     let temp = new Set();
     const result = data.filter((item) => {
-            return item.userId !== userId;
-        })
+        return item.userId !== userId;
+    })
         // User with higher similarity will be placed in front of the array
         // If there are multiple records for an user make comment to some products, we need to sort the records by rating
         .sort((a, b) => {
@@ -186,7 +205,7 @@ const getMayLikeProducts = async (userId) => {
 
             // If there is no duplicate record, return the record with max rating, which has been sorted before
             if (duplicate === false) {
-                
+
                 temp.add(item.userId + '-' + item.id);
 
                 return item;
@@ -297,6 +316,7 @@ module.exports = {
     createComment,
     getComment,
     likeComment,
+    DislikeComment,
     createProduct,
     getProducts,
     getHotProducts,
@@ -316,5 +336,5 @@ module.exports = {
 // 做出getSeckillproduct的API讓前端顯示
 // 做出getSeckillnumber讓前端顯示剩餘的庫存
 // 存完訂單資料之後 就把redis裡面flush掉
-    
+
 
