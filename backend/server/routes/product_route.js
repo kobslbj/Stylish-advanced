@@ -15,8 +15,22 @@ const {
     panicBuying,
     setKillProduct,
     InsertOrderListToDB,
+    getKillProduct,
+    getAllSeckillProduct,
+    getSeckillNumber,
 } = require('../controllers/product_controller');
 
+// 拿秒殺商品
+router.route('/products/getKillProduct/')
+    .get(wrapAsync(getKillProduct))
+
+// 拿所有秒殺商品
+router.route('/products/getAllSeckillProduct')
+    .get(wrapAsync(getAllSeckillProduct))
+
+// 拿秒殺商品的數量
+router.route('/products/getSeckillNumber')
+    .get(wrapAsync(getSeckillNumber))
 
 // 拿到評論內容
 router.route('/products/getComment')
@@ -45,7 +59,9 @@ router.route('/products/setKillProduct')
     .post(wrapAsync(setKillProduct))
 
 // 把搶購訂單存到DB
-router.route('/product/InsertOrderListToDB')
+router.route('/products/InsertOrderListToDB')
     .post(wrapAsync(InsertOrderListToDB))
+
+
 
 module.exports = router;
