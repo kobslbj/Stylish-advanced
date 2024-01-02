@@ -132,6 +132,7 @@ const updateUserInfo = async (newUser) => {
         return newUser;
     } catch (error) {
         await conn.query('ROLLBACK');
+        console.log(error);
         return {error};
     } finally {
         await conn.release();

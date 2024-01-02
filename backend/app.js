@@ -5,6 +5,9 @@ const Cache = require('./util/cache');
 const { PORT_TEST, PORT, NODE_ENV, API_VERSION } = process.env;
 const port = NODE_ENV == 'test' ? PORT_TEST : PORT;
 
+// MobileNet Initialization
+require('./util/recommendation/itembased').loadMobileNetModel();
+
 // Express Initialization
 const express = require('express');
 const cors = require('cors');

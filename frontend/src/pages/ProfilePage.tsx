@@ -57,12 +57,12 @@ const ProfilePage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="lg:pt-[8.875rem] pt-[6.375rem] flex-1 lg:max-w-[1160px] mx-auto">
+      <div className="lg:pt-[8.875rem] pt-[6.375rem] flex-1 lg:max-w-[1200px] mx-auto">
         <div className="flex gap-3 my-8">
           <UserSideBar />
           <div className="mt-5 ml-4">
             <p className="font-sans text-[#3F3A3A] text-2xl font-bold mb-4">使用者資料</p>
-            <div className="items-center block gap-5 lg:flex lg:gap-24">
+            <div className="items-center block gap-5 lg:flex lg:gap-12">
               <ProfileForm data={data} />
               <div className="flex flex-col items-center gap-8">
                 <img src={data.picture || ProfileUser} alt="個人照片" className="rounded-full w-[10rem] h-[10rem] object-cover" />

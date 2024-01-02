@@ -1,4 +1,5 @@
 const { pool } = require('./mysqlcon');
+const fs = require('fs');
 
 const createProduct = async (product, variants, images) => {
     const conn = await pool.getConnection();
@@ -118,6 +119,84 @@ const getProducts = async (pageSize, paging = 0, requirement = {}) => {
     };
 };
 
+// 拿到相似商品
+const getSimilarProducts = async (productId) => {
+    const matrix = fs.readFileSync('./util/recommendation/matrixes/itembased.json');
+    const similarityMatrix = JSON.parse(matrix);
+
+    const productIds = similarityMatrix[productId]
+        .filter((data, index) => {
+            return data.id !== productId;
+        })
+        .map((data) => {
+            return data.id;
+        });
+
+    const productQuery = `SELECT p.id, p.category, p.title, p.description,
+    p.price, p.texture, p.wash, p.place, p.note, p.story, p.main_image 
+    FROM product p`;
+    const [products] = await pool.query(productQuery);
+
+    products.filter((product) => {
+            return productIds.indexOf(product.id) !== -1;
+        })
+        .sort((a, b) => {
+            return productIds.indexOf(a.id) - productIds.indexOf(b.id);
+        });
+
+    return products;
+}
+
+// 可能喜歡的商品
+const getMayLikeProducts = async (userId) => {
+    const matrix = fs.readFileSync('./util/recommendation/matrixes/userbased.json');
+    const similarityMatrix = JSON.parse(matrix);
+
+    const userIds = similarityMatrix[userId]
+        .filter((data, index) => {
+            return data.id !== userId;
+        })
+        .map((data) => {
+            return data.id;
+        });
+    
+    const userQuery = `SELECT u.id userId, p.id id, p.category, p.title, p.description,
+    p.price, p.texture, p.wash, p.place, p.note, p.story, p.main_image, c.rating
+    FROM user u
+    JOIN comment c ON u.id = c.userId
+    JOIN product p ON p.id = c.productId`;
+    
+    const [data] = await pool.query(userQuery);
+
+    let temp = new Set();
+    const result = data.filter((item) => {
+            return item.userId !== userId;
+        })
+        // User with higher similarity will be placed in front of the array
+        // If there are multiple records for an user make comment to some products, we need to sort the records by rating
+        .sort((a, b) => {
+            const exchange = userIds.indexOf(a.userId) - userIds.indexOf(b.userId);
+            return exchange === 0 ? b.rating - a.rating : exchange;
+        })
+        // Because there are multiple records for an user make comment to a product, we need to filter out the duplicate records
+        // and only keep the record with max rating
+        .map((item) => {
+            // Check if there is duplicate record in result
+            const duplicate = temp.has(item.userId + '-' + item.id);
+
+            // If there is no duplicate record, return the record with max rating, which has been sorted before
+            if (duplicate === false) {
+                
+                temp.add(item.userId + '-' + item.id);
+
+                return item;
+            }
+        })
+        .filter((item) => item !== undefined);
+
+    return result;
+}
+
 const getHotProducts = async (hotId) => {
     const productQuery = 'SELECT product.* FROM product INNER JOIN hot_product ON product.id = hot_product.product_id WHERE hot_product.hot_id = ? ORDER BY product.id';
     const productBindings = [hotId];
@@ -228,6 +307,8 @@ module.exports = {
     getKillProduct,
     getAllSeckillProduct,
     getSeckillNumber,
+    getSimilarProducts,
+    getMayLikeProducts,
 };
 
 // 把Justin的照片放到S3  -> Done
@@ -235,3 +316,5 @@ module.exports = {
 // 做出getSeckillproduct的API讓前端顯示
 // 做出getSeckillnumber讓前端顯示剩餘的庫存
 // 存完訂單資料之後 就把redis裡面flush掉
+    
+

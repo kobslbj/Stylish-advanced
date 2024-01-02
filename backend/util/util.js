@@ -10,7 +10,6 @@ const jwt = require('jsonwebtoken');
 const { promisify } = require('util'); // util from native nodejs library
 const AWS =require('aws-sdk')
 
-
 /////////////////// Aws S3 setup //////////////////////
 const S3 = new AWS.S3({
     accessKeyId: process.env.ACCESS_KEY_ID,
