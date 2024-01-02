@@ -238,6 +238,66 @@ const InsertOrderListToDB = async (product, user) => {
     }
 }
 
+// 設定秒殺商品
+const setKillProduct = async (name, price, number, picture) => {
+    const conn = await pool.getConnection();
+    try {
+        const [result] = await conn.query(
+            'INSERT INTO seckillproduct(name,price,number,picture) VALUES (?,?,?,?)',
+            [name, price, number, picture]
+        )
+        return result.insertId;
+    } catch (error) {
+        console.error('Error insert Seckill Product:', error);
+        return -1;
+    }
+}
+
+// 放要查詢秒殺商品的名字 可以拿到相關的屬性
+const getKillProduct = async (name) => {
+    console.log(name);
+    const conn = await pool.getConnection();
+    try {
+        const [result] = await conn.query(
+            `SELECT * FROM seckillproduct WHERE name = '${name}'`
+        )
+        console.log(result);
+        return result;
+    } catch (error) {
+        console.error('Error Getting product:', error);
+        return -1;
+    }
+}
+
+// 拿所有秒殺商品的資料
+const getAllSeckillProduct = async () => {
+    const conn = await pool.getConnection();
+    try {
+        const [result] = await conn.query(
+            `SELECT * FROM seckillproduct`
+        )
+        console.log(result);
+        return result;
+    } catch (error) {
+        console.error('Error getting all seckill: ', error);
+        return -1;
+    }
+}
+
+// 拿想要的秒殺商品數量
+const getSeckillNumber = async (name) => {
+    const conn = await pool.getConnection();
+    try {
+        const [result] = await conn.query(
+            `SELECT number FROM seckillproduct WHERE name = '${name}'`
+        )
+        console.log(result);
+        return result;
+    } catch (error) {
+        console.error('Error getting seckill number: ', error);
+        return -1;
+    }
+}
 
 module.exports = {
     createComment,
@@ -249,6 +309,18 @@ module.exports = {
     getProductsVariants,
     getProductsImages,
     InsertOrderListToDB,
+    setKillProduct,
+    getKillProduct,
+    getAllSeckillProduct,
+    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
 };
+
+// 把Justin的照片放到S3  -> Done
+// 並且insert到DB中 一個數量為1 一個數量為200 -> Done
+// 做出getSeckillproduct的API讓前端顯示
+// 做出getSeckillnumber讓前端顯示剩餘的庫存
+// 存完訂單資料之後 就把redis裡面flush掉
+    
+

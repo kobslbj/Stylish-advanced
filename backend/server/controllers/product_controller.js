@@ -218,6 +218,7 @@ const createProduct = async (req, res) => {
 // 拿到商品
 const getProducts = async (req, res) => {
     const category = req.params.category;
+    console.log(category);
     const paging = parseInt(req.query.paging) || 0;
 
     async function findProduct(category) {
@@ -445,6 +446,8 @@ const InsertOrderListToDB = async (req, res) => {
         //     await Product.InsertOrderListToDB(product,result[i]);
         // }
         await Product.InsertOrderListToDB(product, result);
+        // 清空整個 Redis 數據庫
+        await redis.flushall(); // 或者使用 await redis.flushdb();
         res.status(200).send({ "message": "搶購資料建立完成" })
     } catch (error) {
         console.error('LRANGE failed:', error);
@@ -454,20 +457,75 @@ const InsertOrderListToDB = async (req, res) => {
 
 // 設置要被秒殺的商品
 const setKillProduct = async (req, res) => {
-    const item = req.body;
-    console.log(item.name);
-    console.log(item.number);
-    await prepare(item); // 要放入item的名字 跟 數量 到redis中
-    // const killProductsId = await Product.setKillProduct(
-    //     item.name,
-    //     item.number
-    // )
-    res.send({ "message": "秒殺商品設定成功" })
-    // if (killProductsId === -1) {
-    //     res.send({ "message": "秒殺商品設定錯誤" })
-    // } else {
-    //     res.send({ "message": "秒殺商品設定成功" })
-    // }
+    const { name, number, price, picture } = req.body;
+    const RedisItem = { name, number };
+    console.log(RedisItem.name);
+    console.log(RedisItem.number);
+    await prepare(RedisItem); // 要放入RedisItem的名字 跟 數量 到redis中
+
+    // 剩下的properties
+    const remainAttribute = { name, number, price, picture };
+    console.log("DB的名字: ", remainAttribute.name);
+    console.log("DB的數量: ", remainAttribute.number);
+    console.log("DB的價格: ", remainAttribute.price);
+    console.log("DB的圖片: ", remainAttribute.picture);
+
+    // 把資料放進DB裡面
+    const killProductsId = await Product.setKillProduct(
+        remainAttribute.name,
+        remainAttribute.price,
+        remainAttribute.number,
+        remainAttribute.picture,
+    )
+    //res.send({ "message": "秒殺商品設定成功" })
+    if (killProductsId === -1) {
+        res.send({ "message": "秒殺商品設定錯誤" })
+    } else {
+        res.send({ "message": "秒殺商品設定成功" })
+    }
+}
+
+// 拿秒殺商品的資訊
+const getKillProduct = async (req, res) => {
+    console.log("123")
+    console.log(req.query.name);
+    const killProduct = await Product.getKillProduct(req.query.name);
+
+    if (killProduct === -1) {
+        res.status(500).send({ error: '拿不到秒殺商品' })
+    } else {
+        console.log(killProduct)
+        res.status(200).send({ killProduct });
+    }
+}
+
+// 拿所有秒殺商品
+const getAllSeckillProduct = async (req, res) => {
+    console.log("get所有秒殺商品")
+    const result = await Product.getAllSeckillProduct();
+
+    if (result === -1) {
+        res.status(500).send({ error: '拿不到所有秒殺商品' })
+    } else {
+        console.log(result);
+        res.status(200).send({ result });
+    }
+
+}
+
+// 拿秒殺商品的數量
+const getSeckillNumber = async (req, res) => {
+    console.log(req.query.name)
+    console.log("get秒殺商品數量")
+    console.log()
+    const result = await Product.getSeckillNumber(req.query.name);
+
+    if (result === -1) {
+        res.status(500).send({ error: '拿不到數量' })
+    } else {
+        console.log(result);
+        res.status(200).send({ result });
+    }
 }
 
 module.exports = {
@@ -481,6 +539,9 @@ module.exports = {
     comparePrice,
     setKillProduct,
     InsertOrderListToDB,
+    getKillProduct,
+    getAllSeckillProduct,
+    getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
     comparePrice
