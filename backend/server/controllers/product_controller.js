@@ -515,6 +515,26 @@ const getSeckillNumber = async (req, res) => {
     }
 }
 
+const getSeckillFromRedis = async (req, res) => {
+
+    let total = 0;
+    let booked = 0;
+
+    console.log(req.query.name);
+    await redis.hget(`${req.query.name}`, "Total").then(total_value => {
+        console.log("Total:", total_value);
+        total = total_value;
+    });
+
+    await redis.hget(`${req.query.name}`, "Booked").then(booked_value => {
+        console.log("Booked:", booked_value);
+        booked = booked_value;
+    });
+
+    res.send({ result: `${req.query.name}剩下 ${total - booked} 個商品` })
+
+}
+
 module.exports = {
     panicBuying,
     likeComment,
@@ -531,7 +551,8 @@ module.exports = {
     getSeckillNumber,
     getSimilarProducts,
     getMayLikeProducts,
-    comparePrice
+    comparePrice,
+    getSeckillFromRedis
 };
 
 
