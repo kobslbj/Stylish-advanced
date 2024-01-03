@@ -12,7 +12,9 @@ const createProduct = async (product, variants, images) => {
         return result.insertId;
     } catch (error) {
         await conn.query('ROLLBACK');
-        console.log(error)
+        if (error.code === 'ER_DUP_ENTRY') {
+            return -2;
+        }
         return -1;
     } finally {
         conn.release();
@@ -119,7 +121,6 @@ const getProducts = async (pageSize, paging = 0, requirement = {}) => {
     const productQuery = 'SELECT * FROM product ' + condition.sql + ' ORDER BY id ' + limit.sql;
     const productBindings = condition.binding.concat(limit.binding);
     const [products] = await pool.query(productQuery, productBindings);
-
     const productCountQuery = 'SELECT COUNT(*) as count FROM product ' + condition.sql;
     const productCountBindings = condition.binding;
 
@@ -264,13 +265,13 @@ const InsertOrderListToDB = async (product, users) => {
 }
 
 // 設定秒殺商品
-const setKillProduct = async (name, price, number, picture) => {
+const setKillProduct = async (name, price, number, picture, product_id) => {
     const conn = await pool.getConnection();
     try {
         conn.query("START TRANSACTION");
         const [result] = await conn.query(
-            'INSERT INTO seckillproduct(name,price,number,picture) VALUES (?,?,?,?)',
-            [name, price, number, picture]
+            'INSERT INTO seckillproduct(name, price, number, picture, product_id) VALUES (?, ?, ?, ?, ?)',
+            [name, price, number, picture, product_id]
         )
         conn.query("COMMIT");
         conn.release();

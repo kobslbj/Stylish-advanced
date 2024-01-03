@@ -206,7 +206,9 @@ const createProduct = async (req, res) => {
     )
     const productId = await Product.createProduct(product, variants, images);
     if (productId == -1) {
-        res.status(500);
+        res.status(500).send({ error: 'Internal Server Error' });
+    } else if (productId == -2) {
+        res.status(409).send({ error: 'Product Id Exists' });
     } else {
         res.status(200).send({ productId });
         await buildIBSimilarMatrix(); // Rebuild the similarity matrix
@@ -455,19 +457,21 @@ const InsertOrderListToDB = async (req, res) => {
 
 // 設置要被秒殺的商品
 const setKillProduct = async (req, res) => {
-    const { name, number, price, picture } = req.body;
+    const { name, number, product_id } = req.body;
     const RedisItem = { name, number };
     await prepare(RedisItem); // 要放入RedisItem的名字 跟 數量 到redis中
 
-    // 剩下的properties
-    const remainAttribute = { name, number, price, picture };
+    const { products } = await Product.getProducts(1000, 0, { id: product_id })
+    const price = products[0].price;
+    const picture = util.getImagePath(req.protocol, req.hostname, product_id) + products[0].main_image;
 
     // 把資料放進DB裡面
     const killProductsId = await Product.setKillProduct(
-        remainAttribute.name,
-        remainAttribute.price,
-        remainAttribute.number,
-        remainAttribute.picture,
+        name,
+        number,
+        price,
+        picture,
+        product_id
     )
     //res.send({ "message": "秒殺商品設定成功" })
     if (killProductsId === -1) {
@@ -501,7 +505,9 @@ const getAllSeckillProduct = async (req, res) => {
     for (let i = 0; i < result.length; i++) {
         const remain = await getRemain(result[i].name);
         result[i].remain = remain;
+        result[i].picture = util.getImagePath(req.protocol, req.hostname, result[i].product_id) + result[i].picture;
     }
+
     if (result === -1) {
         res.status(500).send({ error: 'Internal Server Error' })
     } else if (result.length === 0) {
