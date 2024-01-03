@@ -106,12 +106,9 @@ export async function dislikeComment(commentId: any) {
   const url = `${import.meta.env.VITE_API_URL}/products/DislikeComment`;
 
   try {
-    const response = await axios.delete(url, {
+    const response = await axios.post(url, { commentId }, {
       headers: {
         Authorization: `Bearer ${Cookies.get("token")}`,
-      },
-      data: {
-        commentId,
       },
     });
     return response.data;
@@ -120,6 +117,7 @@ export async function dislikeComment(commentId: any) {
     throw error;
   }
 }
+
 
 export async function fetchAllSeckillProducts() {
   try {

@@ -1,21 +1,61 @@
 import { useState, useEffect } from "react";
-import PurchaseProgress from "../chart/purchaseprogress";
+import PurchaseProgress from "../chart/PurchaseProgress";
 import { fetchAllSeckillProducts, panicBuyProduct } from "../../utils/api";
+import Cookies from "js-cookie";
+import Swal from "sweetalert2";
+import io from "socket.io-client";
+
+const user_name = Cookies.get("user_name");
+
+type Product = {
+  name: string;
+  picture: string;
+  price: string;
+  number: number;
+  remain: number;
+};
 
 const FlashSale = () => {
-  const [seckillProducts, setSeckillProducts] = useState([]);
+  const [seckillProducts, setSeckillProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL1);
+
+    socket.on("changeSecKillNumber", (data) => {
+      console.log("SecKill Data:", data);
+      setSeckillProducts((currentProducts) => {
+        return currentProducts.map((product) => {
+          if (product.name === data.productName) {
+            // 創建一個新的產品對象以更新remain屬性
+            return { ...product, remain: data.remain };
+          }
+          return product;
+        });
+      });
+    });
+
+    return () => {
+      socket.off("changeSecKillNumber");
+      socket.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const loadSeckillProducts = async () => {
       const products = await fetchAllSeckillProducts();
       setSeckillProducts(products);
-      console.log(products)
+      console.log(products);
     };
     loadSeckillProducts();
   }, []);
   const handleBuy = async (productName: string) => {
-    const userName = "您的用戶名";
+    const userName = user_name || "預設用戶名";
     const message = await panicBuyProduct(userName, productName);
-    alert(message);
+    Swal.fire({
+      title: "成功!",
+      text: message,
+      icon: "success",
+      confirmButtonText: "確定",
+    });
   };
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -86,7 +126,7 @@ const FlashSale = () => {
               />
             </div>
             <div className="flex flex-col relative">
-              <p className=" flex-shrink-0 text-black font-bold text-[1.5rem] leading-[2.375rem] tracking-[0.4rem] font-[Noto Sans TC]> mt-5 ml-5">
+              <p className=" flex-shrink-0 text-black font-bold text-[1.5rem] leading-[2.375rem]  > mt-5 ml-5">
                 {product.name}
               </p>
               <div className="flex flex-row">
@@ -94,18 +134,21 @@ const FlashSale = () => {
                   {product.price}
                 </p>
                 <p className="flex-shrink-0 text-[#939393] font-bold text-[1.5rem] leading-[2.375rem] line-through mt-2 ml-5">
-                  ${parseInt(product.price) + 100}
+                  ${`${parseInt(product.price, 10) + 100}`}
                 </p>
               </div>
               <div className="w-[270px] h-[100px] ml-5">
-                <PurchaseProgress purchased={50} remaining={50} />
+                <PurchaseProgress
+                  purchased={product.number - product.remain}
+                  remaining={product.remain}
+                />
               </div>
               <p className="flex-shrink-0 text-black font-bold text-[1.5rem] leading-[2.375rem]   mt-2 ml-5">
-                僅剩50件商品!!
+                僅剩{product.remain}件商品!!
               </p>
               <button
                 onClick={() => handleBuy(product.name)}
-                className="w-[5.5rem] h-[5.5rem] flex-shrink-0 bg-white border border-black text-black rounded-full absolute left-[25rem] top-[12rem]"
+                className="w-[5.5rem] h-[5.5rem] flex-shrink-0 bg-white border border-black text-black rounded-full absolute left-[25rem] top-[12rem] hover:bg-black hover:text-white"
               >
                 Buy
               </button>
