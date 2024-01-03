@@ -1,0 +1,1 @@
+ALTER TABLE seckillproduct ADD product_id bigint unsigned NOT NULL;
