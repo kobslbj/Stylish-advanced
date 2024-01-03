@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import io, { Socket } from "socket.io-client";
 import Cookies from "js-cookie";
 import { DataConnection, MediaConnection, Peer } from "peerjs";
 import Comment from "../components/stream/Comment";
@@ -20,23 +19,6 @@ const StreamViewerPage = () => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
 
-  const socketRef = useRef<Socket>();
-  const room = "room1";
-  useEffect(() => {
-    const userName = Cookies.get("user_name");
-    socketRef.current = io("http://localhost:3000", {
-      transports: ["websocket", "polling"],
-      path: "/video",
-    });
-    socketRef.current.emit("join", room, userName);
-    socketRef.current.on("chat message", (message: CommentType) => {
-      setComments((prevComments) => [...prevComments, message]);
-    });
-    return () => {
-      socketRef.current?.disconnect();
-    };
-  }, []);
-
   const peerRef = useRef<Peer>();
   const currentCall = useRef<MediaConnection>();
   const currentConnection = useRef<DataConnection>();
@@ -44,6 +26,7 @@ const StreamViewerPage = () => {
   const [myStream, setMyStream] = useState<MediaStream | undefined>(undefined);
 
   const endCall = () => {
+    console.log(myStream);
     if (myStream) {
       const tracks = myStream.getTracks();
       tracks.forEach((track) => track.stop());
@@ -52,10 +35,17 @@ const StreamViewerPage = () => {
     if (currentCall.current) {
       currentCall.current.close();
     }
+    if (peerRef.current) {
+      peerRef.current.destroy();
+    }
   };
 
   useEffect(() => {
     peerRef.current = new Peer();
+    peerRef.current.on("connection", (connection) => {
+      currentConnection.current = connection;
+    });
+
     return () => {
       endCall();
     };
@@ -68,7 +58,10 @@ const StreamViewerPage = () => {
       connection.on("open", () => {
         console.log("已連接");
       });
-      const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      connection.on("data", (data) => {
+        setComments((prevComments) => [...prevComments, data]);
+      });
+      const userMedia = await navigator.mediaDevices.getUserMedia({ video: true });
       setMyStream(userMedia);
       const call = peerRef.current.call(remoteId, userMedia);
       call.on("stream", async (stream) => {
@@ -80,6 +73,7 @@ const StreamViewerPage = () => {
         console.error(err);
       });
       call.on("close", () => {
+        console.log("closed");
         endCall();
       });
     }
@@ -87,7 +81,12 @@ const StreamViewerPage = () => {
 
   async function commentSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!currentConnection.current) {
+      alert("還沒連線");
+      return;
+    }
     if (commentRef.current?.value.trim() === "") {
+      console.log("no comment");
       return;
     }
     const newComment:CommentType = {
@@ -99,7 +98,7 @@ const StreamViewerPage = () => {
         picture: Cookies.get("user_picture")! || "",
       },
     };
-    socketRef.current?.emit("chat message", room, newComment);
+    currentConnection.current.send(newComment);
     setComments((prevComments) => [...prevComments, newComment]);
 
     if (commentRef.current) {

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Cookies from "js-cookie";
 import { FaVideo, FaRegWindowClose, FaRegCommentAlt } from "react-icons/fa";
 import { DataConnection, MediaConnection, Peer } from "peerjs";
-import io, { Socket } from "socket.io-client";
 import Comment from "../components/stream/Comment";
 
 interface CommentType {
@@ -29,23 +28,20 @@ const LiveStreaming: React.FC = () => {
   const currentConnection = useRef<DataConnection>();
   const peerRef = useRef<Peer>();
 
-  const socketRef = useRef<Socket>();
-  const room = "room1";
-  useEffect(() => {
-    const userName = Cookies.get("user_name");
-    socketRef.current = io("http://localhost:3000", {
-      transports: ["websocket", "polling"],
-      path: "/video",
-    });
-    socketRef.current.emit("join", room, userName);
-    socketRef.current.on("chat message", (message: CommentType) => {
-      setComments((prevComments) => [...prevComments, message]);
-    });
-    return () => {
-      socketRef.current?.disconnect();
-    };
-  }, []);
   const endCall = () => {
+    if (currentConnection.current) {
+      const newComment:CommentType = {
+        id: Date.now().toString(),
+        content: "直播已結束",
+        user: {
+          id: Cookies.get("user_id") || "",
+          name: "Stylish 小編",
+          picture: Cookies.get("user_picture")! || "",
+        },
+      };
+      currentConnection.current.send(newComment);
+      setComments((prevComments) => [...prevComments, newComment]);
+    }
     if (stream) {
       const tracks = stream.getTracks();
       tracks.forEach((track) => track.stop());
@@ -62,13 +58,12 @@ const LiveStreaming: React.FC = () => {
         setLocalId(id);
       });
       peerRef.current.on("connection", (connection) => {
-        // connection.on("data", (data) => {
-        //   console.log(data);
-        //   // setMessages((curtMessages) => [
-        //   //   ...curtMessages,
-        //   //   { id: curtMessages.length + 1, type: "remote", data },
-        //   // ]);
-        // });
+        connection.on("data", (data) => {
+          console.log(data);
+          setComments((prevComments) => [...prevComments, data]);
+        });
+        console.log(`connection ${connection}`);
+
         currentConnection.current = connection;
       });
       peerRef.current.on("call", async (call) => {
@@ -120,6 +115,10 @@ const LiveStreaming: React.FC = () => {
     if (commentRef.current?.value.trim() === "") {
       return;
     }
+    if (!currentConnection.current) {
+      alert("還沒連線");
+      return;
+    }
     const newComment:CommentType = {
       id: Date.now().toString(),
       content: commentRef.current?.value.trim() || "",
@@ -129,8 +128,9 @@ const LiveStreaming: React.FC = () => {
         picture: Cookies.get("user_picture")! || "",
       },
     };
-    socketRef.current?.emit("chat message", room, newComment);
+    currentConnection.current.send(newComment);
     setComments((prevComments) => [...prevComments, newComment]);
+
     if (commentRef.current) {
       commentRef.current.value = "";
     }
