@@ -6,6 +6,8 @@ const { JSDOM } = require('jsdom');
 const fs = require('fs');
 const Redis = require('ioredis');
 const { changeSecKillNumber } = require('../../util/socket');
+const { buildIBSimilarMatrix } = require('../../util/recommendation/itembased');
+const { buildUBSimilarMatrix } = require('../../util/recommendation/userbased');
 
 // Redis 設定 ///////////////////////////////////////////////
 const redis = new Redis({
@@ -22,10 +24,6 @@ redis.on("error", function (error) {
 async function prepare(item) {
     await redis.hmset(item.name, "Total", item.number, "Booked", 0)
 }
-const { buildIBSimilarMatrix } = require('../../util/recommendation/itembased');
-const { buildUBSimilarMatrix } = require('../../util/recommendation/userbased');
-//const puppeteer_extra = require('puppeteer-extra');
-//const pluginStealth = require('puppeteer-extra-plugin-stealth');
 
 const path = require('path');
 const secKillScriptPath = path.join(__dirname, 'secKill.lua');
@@ -40,7 +38,6 @@ async function secKill(item_name, user_name) {
     // redis Evalsha 命令基本語法如下
     // EVALSHA sha1 numkeys key [key ...] arg [arg ...] 
     const temp = await redis.evalsha(sha1, 1, item_name, 1, `${item_name}_OrderList`, user_name);
-    console.log('temp: ', temp);
     return temp; // 1代表還有貨 0代表沒有貨
 }
 ///////////////////////////////////////////////////////////
@@ -68,13 +65,9 @@ const createComment = async (req, res) => {
 
     // 自定義日期格式
     var formattedDate = formattedTime.replace(/(\d+)\/(\d+)\/(\d+),/, '$3/$1/$2');
-
-    console.log(formattedDate);
-
     const uploadPromises = [];
-    console.log('發過來的檔案是: ', req.files.images)
-
     const images_url = [];
+
     if (req.files.images) {
         const images = req.files.images;
         images.forEach((image, index) => {
@@ -88,10 +81,8 @@ const createComment = async (req, res) => {
             uploadPromises.push(new Promise((resolve, reject) => {
                 util.S3.upload(imageParams, function (error, data) {
                     if (error) {
-                        console.log(error);
                         reject(error);
                     } else {
-                        console.log(`Image ${index} Upload Successfully`, data.Location);
                         images_url.push(data.Location)
                         resolve(data);
                     }
@@ -101,11 +92,8 @@ const createComment = async (req, res) => {
     }
 
     await Promise.all(uploadPromises);
-    console.log('存進去的圖片是: ', images_url);
-
 
     try {
-        console.log(req.body);
         const { productId, userId, username, userpicture, text, rating } = req.body;
 
         // 假設你有一個 Comment 模型，並有一個類似 createComment 的方法
@@ -124,7 +112,7 @@ const createComment = async (req, res) => {
 
 
         if (commentId === -1) {
-            res.status(500).send({ error: '創建評論失敗' });
+            res.status(500).send({ error: 'Internal Server Error' });
         } else {
             console.log(commentId)
             res.status(200).send({ commentId });
@@ -132,28 +120,24 @@ const createComment = async (req, res) => {
         }
 
     } catch (error) {
-        console.error('創建評論時出錯：', error);
-        res.status(500).send({ error: '內部服務器錯誤' });
+        res.status(500).send({ error: 'Internal Server Error' });
     }
 };
 
 // 按Like
 const likeComment = async (req, res) => {
-    console.log(req.body);
     try {
         const { commentId } = req.body;
-        console.log(commentId);
 
         const success = await Product.likeComment(commentId);
 
         if (success) {
             res.status(200).send({ success: true });
         } else {
-            res.status(500).send({ error: '点赞失败' });
+            res.status(500).send({ error: 'Internal Server Error' });
         }
     } catch (error) {
-        console.error('点赞时出错：', error);
-        res.status(500).send({ error: '内部服务器错误' });
+        res.status(500).send({ error: 'Internal Server Error' });
     }
 }
 
@@ -165,7 +149,6 @@ const getComment = async (req, res) => {
     if (comment === -1) {
         res.status(500).send({ error: '拿不到評論' })
     } else {
-        console.log(comment)
         res.status(200).send({ comment });
     }
 }
@@ -203,9 +186,6 @@ const createProduct = async (req, res) => {
     const images = req.files.other_images.map(
         img => ([product.id, img.filename])
     )
-    console.log(product)
-    console.log(variants)
-    console.log(images)
     const productId = await Product.createProduct(product, variants, images);
     if (productId == -1) {
         res.status(500);
@@ -423,27 +403,13 @@ const comparePrice = async (req, res) => {
 const panicBuying = async (req, res) => {
     // console.time('secKill')
     const data = req.body;
-    console.log(data);
-    console.log(data.userName);
-    console.log(data.productName);
     const kill = await secKill(data.productName, data.userName);
 
-    let total = 0;
-    let booked = 0;
-    await redis.hget(`${data.productName}`, "Total").then(total_value => {
-        console.log("Total:", total_value);
-        total = total_value;
-    });
-
-    await redis.hget(`${data.productName}`, "Booked").then(booked_value => {
-        console.log("Booked:", booked_value);
-        booked = booked_value;
-    });
-
-    const remain = total - booked;
+    const remain = await getRemain(data.productName);
 
     // socket io emit event
     changeSecKillNumber(data.productName, remain);
+
     // console.timeEnd('secKill')
     if (kill == 1) {
         res.status(200).send({ "message": "搶購成功" });
@@ -454,33 +420,18 @@ const panicBuying = async (req, res) => {
 
 // 把搶購訂單存到DB中
 const InsertOrderListToDB = async (req, res) => {
-    console.log(req.body);
     const product = req.body.product;
     try {
         // 执行 LRANGE 命令
         const users = await redis.lrange(`${product}_OrderList`, 0, -1);
-        console.log('LRANGE users:', users);
         await Product.InsertOrderListToDB(product, users);
+        await redis.del(product);
+        await redis.del(`${product}_OrderList`);
 
-        let total = 0;
-        let booked = 0;
-        await redis.hget(`${product}`, "Total").then(total_value => {
-            console.log("Total:", total_value);
-            total = total_value;
-        });
-
-        await redis.hget(`${product}`, "Booked").then(booked_value => {
-            console.log("Booked:", booked_value);
-            booked = booked_value;
-        });
-        if (total - booked === 0) {
-            await redis.del(`${product}`);
-        }
-        // await redis.flushall(); // 或者使用 await redis.flushdb();
-        res.status(200).send({ "message": "搶購資料建立完成" })
+        res.status(200).send({ message: "搶購資料建立完成" })
     } catch (error) {
         console.error('LRANGE failed:', error);
-        res.status(500).send({ "message": "搶購資料建立失敗" })
+        res.status(500).send({ error: "Internal Server Error" })
     }
 }
 
@@ -488,16 +439,10 @@ const InsertOrderListToDB = async (req, res) => {
 const setKillProduct = async (req, res) => {
     const { name, number, price, picture } = req.body;
     const RedisItem = { name, number };
-    console.log(RedisItem.name);
-    console.log(RedisItem.number);
     await prepare(RedisItem); // 要放入RedisItem的名字 跟 數量 到redis中
 
     // 剩下的properties
     const remainAttribute = { name, number, price, picture };
-    console.log("DB的名字: ", remainAttribute.name);
-    console.log("DB的數量: ", remainAttribute.number);
-    console.log("DB的價格: ", remainAttribute.price);
-    console.log("DB的圖片: ", remainAttribute.picture);
 
     // 把資料放進DB裡面
     const killProductsId = await Product.setKillProduct(
@@ -508,9 +453,9 @@ const setKillProduct = async (req, res) => {
     )
     //res.send({ "message": "秒殺商品設定成功" })
     if (killProductsId === -1) {
-        res.send({ "message": "秒殺商品設定錯誤" })
+        res.send({ error: "Internal Server Error" })
     } else {
-        res.send({ "message": "秒殺商品設定成功" })
+        res.send({ message: "秒殺商品設定成功" })
     }
 }
 
@@ -518,28 +463,48 @@ const setKillProduct = async (req, res) => {
 const getKillProduct = async (req, res) => {
     console.log("123")
     console.log(req.query.name);
-    const killProduct = await Product.getKillProduct(req.query.name);
+    const result = await Product.getKillProduct(req.query.name);
 
-    if (killProduct === -1) {
-        res.status(500).send({ error: '拿不到秒殺商品' })
+    if (result === -1) {
+        res.status(500).send({ error: 'Internal Server Error' })
+    } else if (!result) {
+        res.status(404).send({ error: 'Product not found' })
     } else {
-        console.log(killProduct)
-        res.status(200).send({ killProduct });
+        const remain = await getRemain(req.query.name);
+        result.remain = remain;
+        res.status(200).send({ result });
     }
 }
 
 // 拿所有秒殺商品
 const getAllSeckillProduct = async (req, res) => {
-    console.log("get所有秒殺商品")
     const result = await Product.getAllSeckillProduct();
 
+    for (let i = 0; i < result.length; i++) {
+        const remain = await getRemain(result[i].name);
+        result[i].remain = remain;
+    }
     if (result === -1) {
-        res.status(500).send({ error: '拿不到所有秒殺商品' })
+        res.status(500).send({ error: 'Internal Server Error' })
+    } else if (result.length === 0) {
+        res.status(404).send({ error: 'Product not found' })
     } else {
-        console.log(result);
         res.status(200).send({ result });
     }
 
+}
+
+const getRemain = async (name) => {
+    let total = 0;
+    let booked = 0;
+    await redis.hget(name, "Total").then(total_value => {
+        total = total_value;
+    });
+
+    await redis.hget(name, "Booked").then(booked_value => {
+        booked = booked_value;
+    });
+    return total - booked;
 }
 
 const getSeckillFromRedis = async (req, res) => {
@@ -547,7 +512,6 @@ const getSeckillFromRedis = async (req, res) => {
     let total = 0;
     let booked = 0;
 
-    console.log(req.query.name);
     await redis.hget(`${req.query.name}`, "Total").then(total_value => {
         console.log("Total:", total_value);
         total = total_value;

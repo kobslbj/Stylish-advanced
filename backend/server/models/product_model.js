@@ -78,10 +78,9 @@ const likeComment = async (commentId) => {
 
         return result.affectedRows > 0;
     } catch (error) {
-        console.error('点赞时出错：', error);
         return false;
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
@@ -240,9 +239,9 @@ const InsertOrderListToDB = async (product, users) => {
             data.push(product, users[i]);
         }
 
-        const [result] = await conn.query(sql, data);
-        console.log(`${product} added successfully with ID: ${result.insertId}`);
+        await conn.query(sql, data);
         conn.query("COMMIT");
+        conn.release();
         // return result.insertId
     } catch (error) {
         console.error('Error adding product:', error);
@@ -261,6 +260,7 @@ const setKillProduct = async (name, price, number, picture) => {
             [name, price, number, picture]
         )
         conn.query("COMMIT");
+        conn.release();
         return result.insertId;
     } catch (error) {
         console.error('Error insert Seckill Product:', error);
@@ -276,7 +276,8 @@ const getKillProduct = async (name) => {
     try {
         const [result] = await conn.query(`SELECT * FROM seckillproduct WHERE name = ?`, [name]);
         console.log(result);
-        return result;
+        conn.release();
+        return result[0];
     } catch (error) {
         console.error('Error Getting product:', error);
         return -1;
@@ -290,7 +291,7 @@ const getAllSeckillProduct = async () => {
         const [result] = await conn.query(
             `SELECT * FROM seckillproduct`
         )
-        console.log(result);
+        conn.release();
         return result;
     } catch (error) {
         console.error('Error getting all seckill: ', error);

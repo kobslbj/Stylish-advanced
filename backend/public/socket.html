@@ -10,32 +10,31 @@
 </head>
 
 <body>
-    <h1 id="productName"></h1>
+    <h1>Socket.IO Example</h1>
+    <input id="name" type="text"/>
+    <button onclick="getRemain()">查詢商品剩餘數</button>
+    <h2 id="productName"></h2>
     <div id="remain"></div>
 
     <script>
-        (async () => {
-            const res = await fetch('http://localhost:3000/api/1.0/products/getSeckillFromRedis?name=Iphone 15');
+
+        const socket = io();
+        const getRemain = async() => {
+            const _name = document.getElementById('name').value;
+            const res = await fetch(`/api/1.0/products/getSeckillFromRedis?name=${_name}`);
             const data = await res.json();
             const { name, remain } = data;
             const h1 = document.getElementById('productName');
             h1.innerHTML = name + '剩餘數量';
             const div = document.getElementById('remain');
             div.innerHTML = remain;
-    
-        })();
-        
-        // Connect to the Socket.IO server
-        const socket = io();
-
-        // Handle the 'chat message' event
-        socket.on('changeSecKillNumber', ({ productName, remain }) => {
-            const h1 = document.getElementById('productName');
-            h1.innerHTML = productName + '剩餘數量';
-            const div = document.getElementById('remain');
-            div.innerHTML = remain;
-        });
-
+            socket.on('changeSecKillNumber', ({ productName, remain }) => {
+                const h1 = document.getElementById('productName');
+                h1.innerHTML = productName + '剩餘數量';
+                const div = document.getElementById('remain');
+                div.innerHTML = remain;
+            });
+        }
         
     </script>
 </body>
