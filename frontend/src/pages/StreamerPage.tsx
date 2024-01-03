@@ -1,6 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Cookies from "js-cookie";
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaRegWindowClose, FaRegCommentAlt } from "react-icons/fa";
+import { FaVideo, FaRegWindowClose, FaRegCommentAlt } from "react-icons/fa";
+import { DataConnection, MediaConnection, Peer } from "peerjs";
+import io, { Socket } from "socket.io-client";
 import Comment from "../components/stream/Comment";
 
 interface CommentType {
@@ -16,44 +18,102 @@ interface CommentType {
 const LiveStreaming: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | undefined>(undefined);
-  const [enableMicrophone, setEnableMicrophone] = useState(true);
+  // const [enableMicrophone, setEnableMicrophone] = useState(true);
   const [showChat, setShowChat] = useState(true);
   const [comments, setComments] = useState<CommentType[]>([]);
 
-  const startStreaming = async () => {
-    try {
-      const userMedia = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: enableMicrophone,
-      });
+  const [localId, setLocalId] = useState("");
+  const currentCall = useRef<MediaConnection>();
+  const currentConnection = useRef<DataConnection>();
+  const peerRef = useRef<Peer>();
 
-      setStream(userMedia);
-      if (videoRef.current) {
-        videoRef.current.srcObject = userMedia;
-      }
-    } catch (error) {
-      console.error("Error accessing user media:", error);
-    }
-  };
-
-  const stopStreaming = () => {
+  const socketRef = useRef<Socket>();
+  const room = "room1";
+  useEffect(() => {
+    const userName = Cookies.get("user_name");
+    socketRef.current = io("http://localhost:3000", {
+      transports: ["websocket", "polling"],
+      path: "/video",
+    });
+    socketRef.current.emit("join", room, userName);
+    socketRef.current.on("chat message", (message: CommentType) => {
+      setComments((prevComments) => [...prevComments, message]);
+    });
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, []);
+  const endCall = () => {
     if (stream) {
       const tracks = stream.getTracks();
       tracks.forEach((track) => track.stop());
       setStream(undefined);
     }
-  };
-
-  const toggleMicrophone = () => {
-    setEnableMicrophone((prev) => !prev);
-    if (stream) {
-      const audioTracks = stream.getAudioTracks();
-      audioTracks.forEach((track) => {
-        track.enabled = !track.enabled;
-      });
+    if (currentCall.current) {
+      currentCall.current.close();
     }
   };
+  useEffect(() => {
+    const createPeer = () => {
+      peerRef.current = new Peer();
+      peerRef.current.on("open", (id) => {
+        setLocalId(id);
+      });
+      peerRef.current.on("connection", (connection) => {
+        // connection.on("data", (data) => {
+        //   console.log(data);
+        //   // setMessages((curtMessages) => [
+        //   //   ...curtMessages,
+        //   //   { id: curtMessages.length + 1, type: "remote", data },
+        //   // ]);
+        // });
+        currentConnection.current = connection;
+      });
+      peerRef.current.on("call", async (call) => {
+        // 回傳直播內容
+        const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        setStream(userMedia);
+        if (videoRef.current) {
+          videoRef.current.srcObject = userMedia;
+          // videoRef.current.play();
+        }
+        call.answer(userMedia);
+        console.log(currentCall);
+        currentCall.current = call;
+      });
+    };
+
+    createPeer();
+
+    return () => {
+      endCall();
+    };
+  }, []);
+
+  useEffect(() => {
+    const scrollToBottom = () => {
+      const chatContainer = chatContainerRef.current;
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    };
+    scrollToBottom();
+  }, [comments]);
+
+  async function startStreaming() {
+    try {
+      const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      setStream(userMedia);
+      if (videoRef.current) {
+        videoRef.current.srcObject = userMedia;
+        // videoRef.current.play();
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
   async function commentSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -69,6 +129,7 @@ const LiveStreaming: React.FC = () => {
         picture: Cookies.get("user_picture")! || "",
       },
     };
+    socketRef.current?.emit("chat message", room, newComment);
     setComments((prevComments) => [...prevComments, newComment]);
     if (commentRef.current) {
       commentRef.current.value = "";
@@ -77,18 +138,19 @@ const LiveStreaming: React.FC = () => {
 
   return (
     <div className="flex mt-6 max-w-[1280px] mx-auto">
+      <p>{localId || "loading"}</p>
       <div className={`flex flex-col items-center ${showChat ? "w-3/4" : "w-full"}`}>
-        <video ref={videoRef} autoPlay playsInline className="w-full h-full border-2 border-solid rounded-lg aspect-[4/3]"><track kind="captions" srcLang="zh" label="中文" /></video>
+        <video ref={videoRef} autoPlay playsInline className="w-full h-full border-2 border-solid rounded-lg aspect-[4/3] bg-black"><track kind="captions" srcLang="zh" label="中文" /></video>
         <div className="flex gap-6 m-3">
-          <button type="button" onClick={toggleMicrophone} className="flex gap-3 px-6 py-4 border rounded-lg">
+          {/* <button type="button" onClick={toggleMicrophone} className="flex gap-3 px-6 py-4 border rounded-lg">
             <span className="font-bold">麥克風</span>
             {enableMicrophone ? <FaMicrophoneSlash size={25} /> : <FaMicrophone size={25} />}
-          </button>
-          <button type="button" onClick={startStreaming} disabled={!!stream} className="flex gap-3 px-6 py-4 border rounded-lg">
-            <span className="font-bold">{stream ? "直播中" : "開啟直播"}</span>
+          </button> */}
+          <button type="button" onClick={startStreaming} className="flex gap-3 px-6 py-4 border rounded-lg">
+            <span className="font-bold">開直播</span>
             <FaVideo size={25} />
           </button>
-          <button type="button" onClick={stopStreaming} disabled={!stream} className="flex gap-3 px-6 py-4 bg-red-600 border rounded-lg">
+          <button type="button" onClick={endCall} className="flex gap-3 px-6 py-4 bg-red-600 border rounded-lg">
             <span className="font-bold text-white">離開</span>
             <FaRegWindowClose size={25} color="white" />
           </button>
@@ -100,7 +162,7 @@ const LiveStreaming: React.FC = () => {
       </div>
       {showChat && (
       <div className="w-1/4 bg-black rounded-lg">
-        <div className="w-full p-4 overflow-y-auto h-[50rem]">
+        <div ref={chatContainerRef} className="w-full p-4 overflow-y-auto h-[50rem]">
           {comments.map((comment) => (
             <Comment key={comment.id} comment={comment} />
           ))}

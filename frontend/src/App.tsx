@@ -13,6 +13,7 @@ import ThankyouPage from "./pages/ThankyouPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import StreamerPage from "./pages/StreamerPage";
 import FlashSalePage from "./pages/FlashSalePage";
+import StreamViewerPage from "./pages/StreamViewerPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
@@ -49,6 +50,7 @@ function App() {
               <Route path="/my/order-history" element={<OrderHistoryPage />} />
               <Route path="/thankyou" element={<ThankyouPage />} />
               <Route path="/admin/streamer" element={<StreamerPage />} />
+              <Route path="/stream" element={<StreamViewerPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
