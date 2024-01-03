@@ -3,6 +3,7 @@ import PurchaseProgress from "../chart/PurchaseProgress";
 import { fetchAllSeckillProducts, panicBuyProduct } from "../../utils/api";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
+import io from "socket.io-client";
 
 const user_name = Cookies.get("user_name");
 
@@ -16,6 +17,28 @@ type Product = {
 
 const FlashSale = () => {
   const [seckillProducts, setSeckillProducts] = useState<Product[]>([]);
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL1);
+
+    socket.on("changeSecKillNumber", (data) => {
+      console.log("SecKill Data:", data);
+      setSeckillProducts((currentProducts) => {
+        return currentProducts.map((product) => {
+          if (product.name === data.productName) {
+            // 創建一個新的產品對象以更新remain屬性
+            return { ...product, remain: data.remain };
+          }
+          return product;
+        });
+      });
+    });
+
+    return () => {
+      socket.off("changeSecKillNumber");
+      socket.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const loadSeckillProducts = async () => {
       const products = await fetchAllSeckillProducts();
