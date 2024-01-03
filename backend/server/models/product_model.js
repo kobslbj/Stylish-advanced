@@ -15,37 +15,29 @@ const createProduct = async (product, variants, images) => {
         console.log(error)
         return -1;
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
 // Comment 對資料庫的操作
 const createComment = async (productId, userId, username, userpicture, text, rating, image_url, formattedDate) => {
     const conn = await pool.getConnection();
-    //console.log('DBDBDBDB',userId,productId,text,rating)
-    console.log("Comment 對 DB 操作開始")
-    console.log(productId)
-    console.log(userId)
-    console.log(text)
-    console.log(rating)
-    console.log(image_url)
-    console.log(formattedDate)
 
     try {
         // Insert a new comment into the comment table
+        await conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'INSERT INTO comment (productId, userId, username, userpicture, text, rating, images_url, commentTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [productId, userId, username, userpicture, text, rating, image_url, formattedDate]
         );
-        // console.log(result.insertId);
-
+        conn.query("COMMIT");
 
         return result.insertId; // Return the ID of the newly inserted comment
     } catch (error) {
-        console.error('Error creating comment:', error);
+        conn.query("ROLLBACK");
         return -1; // Return -1 or some other error indicator based on your logic
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
@@ -68,21 +60,42 @@ const getComment = async (productId) => {
 // Like Comment的DB操作
 const likeComment = async (commentId) => {
     const conn = await pool.getConnection();
-    console.log('評論的ID是: ', commentId)
     try {
         // 更新评论的点赞数量
+        await conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'UPDATE comment SET likes = likes + 1 WHERE commentId = ?',
             [commentId]
         );
+        conn.query("COMMIT");
 
         return result.affectedRows > 0;
     } catch (error) {
+        conn.query("ROLLBACK");
         return false;
     } finally {
         conn.release();
     }
 };
+
+const DislikeComment = async (commentId) => {
+    const conn = await pool.getConnection();
+    try {
+        // 更新评论的点赞数量
+        await conn.query("START TRANSACTION");
+        const [result] = await conn.query(
+            'UPDATE comment SET likes = likes - 1 WHERE commentId = ?',
+            [commentId]
+        );
+        conn.query("COMMIT");
+        return result.affectedRows > 0;
+    } catch (error) {
+        conn.query("ROLLBACK");
+        return false;
+    } finally {
+        conn.release();
+    }
+}
 
 
 const getProducts = async (pageSize, paging = 0, requirement = {}) => {
@@ -303,6 +316,7 @@ module.exports = {
     createComment,
     getComment,
     likeComment,
+    DislikeComment,
     createProduct,
     getProducts,
     getHotProducts,

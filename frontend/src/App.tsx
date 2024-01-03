@@ -12,6 +12,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ThankyouPage from "./pages/ThankyouPage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
 import StreamerPage from "./pages/StreamerPage";
+import FlashSalePage from "./pages/FlashSalePage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
@@ -38,6 +39,7 @@ function App() {
             <Route path="/men" element={<ProductPageLayout endpoint="men" />} />
             <Route path="/accessories" element={<ProductPageLayout endpoint="accessories" />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
+            <Route path="/flashsale" element={<FlashSalePage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route element={<LoginRoute />}>
               <Route path="/login" element={<LoginPage />} />

@@ -1,4 +1,5 @@
 export interface Product {
+  pages: any;
   id: number;
   category: string;
   title: string;

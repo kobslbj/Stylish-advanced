@@ -13,6 +13,7 @@ const {
     getComment,
     createComment,
     likeComment,
+    DislikeComment,
     comparePrice,
     panicBuying,
     setKillProduct,
@@ -56,6 +57,10 @@ router.route('/products/createComment')
 // 點讚評論的API
 router.route('/products/likeComment')
     .post(wrapAsync(likeComment))
+
+// 倒讚評論的API
+router.route('/products/DislikeComment')
+    .post(wrapAsync(DislikeComment))
 
 // 比價 API
 router.route('/products/comparePrice')
