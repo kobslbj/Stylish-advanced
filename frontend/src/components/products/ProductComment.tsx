@@ -8,6 +8,9 @@ import Star from "../../assets/images/star.png";
 import RedHeart from "../../assets/images/redheart.png";
 import Heart from "../../assets/images/heart.png";
 
+type ProductCommentProps = {
+  productId: string; 
+};
 type CommentType = {
   commentId: number;
   id: number;
@@ -24,7 +27,7 @@ type CommentType = {
   isLikedNumber: number;
 };
 
-const ProductComment = ({ productId }) => {
+const ProductComment = ({ productId }: ProductCommentProps) => {
   const [comments, setComments] = useState<CommentType[]>([]);
 
   useEffect(() => {
