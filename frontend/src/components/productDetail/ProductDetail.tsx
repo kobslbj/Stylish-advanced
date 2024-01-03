@@ -17,9 +17,11 @@ const user_id = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams<{ id: string }>();
+
   if (!id) {
-    return <NotFound />;
+    return <div>產品未找到。</div>;
   }
+
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
     queryKey: ["productDetails", id],
