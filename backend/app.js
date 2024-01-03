@@ -12,6 +12,10 @@ require('./util/recommendation/itembased').loadMobileNetModel();
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { setUpVideoSocket } = require('./socket');
+setUpVideoSocket(server);
 
 app.set('trust proxy', true);
 // app.set('trust proxy', 'loopback');
@@ -46,7 +50,7 @@ app.use(function (err, req, res, next) {
 });
 
 if (NODE_ENV != 'production') {
-    app.listen(port, async () => {
+    server.listen(port, async () => {
         Cache.connect().catch(() => {
             console.log('redis connect fail');
         });
