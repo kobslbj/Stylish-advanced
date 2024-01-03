@@ -55,6 +55,8 @@ const getComment = async (productId) => {
     } catch (error) {
         console.error('Error Getting comment:', error);
         return -1; // Return -1 or some other error indicator based on your logic
+    } finally {
+        conn.release();
     }
 }
 
@@ -255,12 +257,12 @@ const InsertOrderListToDB = async (product, users) => {
 
         await conn.query(sql, data);
         conn.query("COMMIT");
-        conn.release();
-        // return result.insertId
     } catch (error) {
         console.error('Error adding product:', error);
         conn.query("ROLLBACK");
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
@@ -274,12 +276,13 @@ const setKillProduct = async (name, price, number, picture, product_id) => {
             [name, price, number, picture, product_id]
         )
         conn.query("COMMIT");
-        conn.release();
         return result.insertId;
     } catch (error) {
         console.error('Error insert Seckill Product:', error);
         conn.query("ROLLBACK");
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
@@ -290,11 +293,12 @@ const getKillProduct = async (name) => {
     try {
         const [result] = await conn.query(`SELECT * FROM seckillproduct WHERE name = ?`, [name]);
         console.log(result);
-        conn.release();
         return result[0];
     } catch (error) {
         console.error('Error Getting product:', error);
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
@@ -305,11 +309,12 @@ const getAllSeckillProduct = async () => {
         const [result] = await conn.query(
             `SELECT * FROM seckillproduct`
         )
-        conn.release();
         return result;
     } catch (error) {
         console.error('Error getting all seckill: ', error);
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
