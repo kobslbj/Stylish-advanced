@@ -104,7 +104,7 @@ const ProductComment = ({ productId }) => {
             <div className="flex flex-col ml-3 mt-[0.69rem]">
               <p className="font-bold">{comment.username}</p>
               <p className="text-[#909090;]">
-                {comment.commentTime} | 顏色: 藍色
+                {comment.commentTime} 
               </p>
             </div>
           </div>
