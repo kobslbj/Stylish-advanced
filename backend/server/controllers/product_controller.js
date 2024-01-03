@@ -505,7 +505,6 @@ const getAllSeckillProduct = async (req, res) => {
     for (let i = 0; i < result.length; i++) {
         const remain = await getRemain(result[i].name);
         result[i].remain = remain;
-        result[i].picture = util.getImagePath(req.protocol, req.hostname, result[i].product_id) + result[i].picture;
     }
 
     if (result === -1) {
