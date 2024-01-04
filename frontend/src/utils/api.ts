@@ -129,11 +129,11 @@ export async function fetchAllSeckillProducts() {
   }
 }
 
-export async function panicBuyProduct(userName: string, productName: string) {
+export async function panicBuyProduct(userId: number, productId: number) {
   try {
     const response = await axios.post(`${import.meta.env.VITE_API_URL}/products/panicBuying`, {
-      userName,
-      productName
+      userId,
+      productId
     });
     return response.data.message;
   } catch (error) {
@@ -141,6 +141,7 @@ export async function panicBuyProduct(userName: string, productName: string) {
     throw error;
   }
 }
+
 
 
 
