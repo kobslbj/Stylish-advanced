@@ -16,6 +16,7 @@ import ComparePrice from "./ComparePrice";
 const userId = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
+  const userSimilarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
@@ -63,6 +64,13 @@ const ProductDetail = () => {
       ) {
         e.preventDefault();
         similarProductsRef.current.scrollLeft += e.deltaY;
+      }
+      if (
+        userSimilarProductsRef.current &&
+        userSimilarProductsRef.current.contains(e.target as Node)
+      ) {
+        e.preventDefault();
+        userSimilarProductsRef.current.scrollLeft += e.deltaY;
       }
     };
 
@@ -319,7 +327,7 @@ const ProductDetail = () => {
         <ProductComment productId={id} />
       </div>
       <div>
-        <div className="flex flex-col items-center mb-10 ">
+        <div className="flex flex-col items-center mb-10">
           <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9 mb-3 mt-3">
             與此商品相關的產品
           </p>
@@ -338,7 +346,7 @@ const ProductDetail = () => {
           <div className="bg-[#3F3A3A] h-px flex-grow" />
           <div
             className="w-[1000px] flex flex-row flex-nowrap overflow-x-auto justify-start items-center gap-3 no-scrollbar"
-            ref={similarProductsRef}
+            ref={userSimilarProductsRef}
           >
             {renderMaylikeProducts()}
           </div>

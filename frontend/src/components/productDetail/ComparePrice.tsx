@@ -22,6 +22,7 @@ const ComparePrice:React.FC<CompareProductProps> = ({ setShowCompare, productNam
     queryKey: ["comparePrice", productName],
   });
   let comparePriceItems;
+  console.log(data);
   if (data) {
     comparePriceItems = data.map((item:ComparePriceType) => (
       <div key={item.shopName} className="flex items-center gap-4 my-2">
@@ -35,9 +36,10 @@ const ComparePrice:React.FC<CompareProductProps> = ({ setShowCompare, productNam
     <Modal>
       <button type="button" onClick={() => setShowCompare(false)}><img src={Close} alt="close-button" className="absolute top-3 right-3" />
       </button>
-      <div className="flex flex-col items-center min-h-[400px]">
+      <div className="flex flex-col items-center min-h-[400px] min-w-[300px]">
         <p className="text-xl">{productName}</p>
         <p className="text-xl">比價結果</p>
+        {data && data.length === 0 && <p className="py-7">查無比價資料</p>}
         <div>{comparePriceItems}</div>
       </div>
     </Modal>
