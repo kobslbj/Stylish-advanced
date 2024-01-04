@@ -21,8 +21,6 @@ const socketConnection = (app) => {
         cors: {
             origin: '*',
         },
-        transports: ['websocket', 'polling'],
-        secure: true,
         path: '/video',
     });
     streamIo.on('connection', (socket) => {
