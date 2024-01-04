@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const useCheckResponsive = (MinTabletWidth = 1280) => {
+const useCheckResponsive = (MinTabletWidth = 1000) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < MinTabletWidth);
   useEffect(() => {
     const handleResize = () => {

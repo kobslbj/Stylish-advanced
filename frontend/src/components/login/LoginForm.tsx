@@ -74,7 +74,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ setShowLogin, showLogin }) => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       const { access_token, user } = response.data.data;
       setCookies({ access_token, user });
-      navigate(-1);
+      navigate("/");
     } catch (error: any) {
       handleError(error);
     }

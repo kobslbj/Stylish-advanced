@@ -1,6 +1,7 @@
 const sidebarLinks = [
   { href: "/my/profile", text: "我的帳戶" },
   { href: "/my/order-history", text: "訂單紀錄" },
+  { href: "/admin/streamer", text: "開啟直播" },
 ];
 
 const UserSideBar = () => (
