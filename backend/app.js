@@ -14,8 +14,6 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-
-
 app.set('trust proxy', true);
 // app.set('trust proxy', 'loopback');
 app.set('json spaces', 2);
@@ -51,7 +49,6 @@ app.use(function (err, req, res, next) {
 
 // Socket.io Initialization
 const server = socketConnection(app);
-
 
 if (NODE_ENV != 'production') {
     server.listen(port, async () => {

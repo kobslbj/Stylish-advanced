@@ -2,7 +2,8 @@ import { useState, useEffect, useContext, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import { fetchProductDetail } from "../../utils/api";
+import Cookies from "js-cookie";
+import { fetchProductDetail, fetchProductSimilar, fetchProductMaylike } from "../../utils/api";
 import { Product } from "../../types/productTypes";
 import { CartCountContext } from "../../contexts/CartCountContext";
 import NotFound from "../layout/NotFound";
@@ -10,13 +11,14 @@ import ProductDetailSkeleton from "../layout/loading/ProductDetailSkeleton";
 import { ProductCart } from "../../types/productCartType";
 import ProductComment from "../products/ProductComment";
 import SimilarProductCard from "../products/SimilarProductCard";
-import { fetchProductSimilar, fetchProductMaylike } from "../../utils/api";
-import Cookies from "js-cookie";
 
 const user_id = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  if (!id) {
+    return <NotFound />;
+  }
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
     queryKey: ["productDetails", id],
@@ -103,7 +105,7 @@ const ProductDetail = () => {
     </div>
   ));
   const variants = data.variants.filter(
-    (variant) => variant.color_code === selectedColor
+    (variant) => variant.color_code === selectedColor,
   );
 
   const sizeItems = variants.map((variant) => (
@@ -123,7 +125,7 @@ const ProductDetail = () => {
   ));
 
   const selectedVariant = variants.find(
-    (variant) => variant.size === selectedSize
+    (variant) => variant.size === selectedSize,
   );
   const isMaxCountReached = selectedVariant && count >= selectedVariant.stock;
   const amountButton = (
@@ -174,13 +176,13 @@ const ProductDetail = () => {
         price: data.price,
       };
       const existingCartItems = JSON.parse(
-        localStorage.getItem("cart") || "[]"
+        localStorage.getItem("cart") || "[]",
       );
       const existingItemIndex = existingCartItems.findIndex(
         (item: ProductCart) =>
           item.id === productCartData.id &&
           item.colorCode === productCartData.colorCode &&
-          item.size === productCartData.size
+          item.size === productCartData.size,
       );
       const Toast = Swal.mixin({
         toast: true,
@@ -215,8 +217,7 @@ const ProductDetail = () => {
   const renderSimilarProducts = () => {
     if (isLoadingSimilar) return <p>Loading similar products...</p>;
     if (isErrorSimilar) return <p>Error loading similar products.</p>;
-    if (!similarProducts || similarProducts.length === 0)
-      return <p>No similar products found.</p>;
+    if (!similarProducts || similarProducts.length === 0) { return <p>No similar products found.</p>; }
 
     return similarProducts.map((product: Product) => (
       <SimilarProductCard key={product.id} product={product} />
@@ -225,8 +226,7 @@ const ProductDetail = () => {
   const renderMaylikeProducts = () => {
     if (isLoadingMaylike) return <p>Loading may like products...</p>;
     if (isErrorMaylike) return <p>Error loading may like products.</p>;
-    if (!maylikeProducts || maylikeProducts.length === 0)
-      return <p>No may like products found.</p>;
+    if (!maylikeProducts || maylikeProducts.length === 0) { return <p>No may like products found.</p>; }
 
     return maylikeProducts.map((product: Product) => (
       <SimilarProductCard key={product.id} product={product} />
