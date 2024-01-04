@@ -7,7 +7,7 @@ const socketConnection = (app) => {
     io = new Server(server, {
         cors: {
             origin: '*',
-        }
+        },
     });
     io.on('connection', (socket) => {
         console.info(`Client connected [id=${socket.id}]`);
@@ -16,7 +16,29 @@ const socketConnection = (app) => {
             console.info(`Client disconnected [id=${socket.id}]`);
         });
     });
-    
+
+    const streamIo = new Server(server, {
+        transports: ['websocket', 'polling'],
+        secure: true,
+        path: '/video',
+    });
+    streamIo.on('connection', (socket) => {
+        console.log('A user connected');
+        // Join Room
+        socket.on('join', (room) => {
+            socket.join(room);
+            socket.to(room).emit('viewer', socket.id);
+        });
+        socket.on('chat message', (room, msg) => {
+            socket.to(room).emit('chat message', msg);
+        });
+        // Disconnect
+        socket.on('disconnect', () => {
+            console.log(socket.id, 'disconnect');
+            io.emit('leave', socket.id);
+        });
+    });
+
     return server;
 };
 
