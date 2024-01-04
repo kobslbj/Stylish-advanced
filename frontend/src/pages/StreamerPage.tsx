@@ -76,7 +76,7 @@ const LiveStreaming: React.FC = () => {
       // });
       peerRef.current.on("call", async (call) => {
         // 回傳直播內容
-        const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         setStream(userMedia);
         if (videoRef.current) {
           videoRef.current.srcObject = userMedia;
@@ -105,7 +105,7 @@ const LiveStreaming: React.FC = () => {
 
   async function startStreaming() {
     try {
-      const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setStream(userMedia);
       if (videoRef.current) {
         videoRef.current.srcObject = userMedia;
