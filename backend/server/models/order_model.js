@@ -1,12 +1,40 @@
-const {pool} = require('./mysqlcon');
+const { pool } = require('./mysqlcon');
 const got = require('got');
+
+const getWinUsers = async (productId) => {
+    try {
+        const [orderData] = await pool.query(`SELECT COUNT(*) qty, user_id FROM orderlist WHERE product_id = ? GROUP BY user_id`, [productId]);
+        const [productImage] = await pool.query(`SELECT main_image productImage FROM product WHERE id = ?`, [productId]);
+        if (orderData && orderData.length > 0) {
+            const userIds = orderData.map(order => order.user_id);
+            let [users] = await pool.query(`SELECT id, picture userPicture, name userName FROM user WHERE id IN (?)`, [userIds]);
+            console.log(users);
+            users = users.sort((a, b) => {
+                return userIds.indexOf(a.id) - userIds.indexOf(b.id);
+            });
+
+            for (let i = 0; i < orderData.length; i++) {
+                orderData[i].productImage = productImage[0].productImage;
+                orderData[i].userPicture = users[i].userPicture;
+                orderData[i].userName = users[i].userName;
+            }
+
+            return orderData;
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.log(error);
+        return { error };
+    }
+}
 
 const createOrder = async (order) => {
     const [result] = await pool.query('INSERT INTO order_table SET ?', order);
     return result.insertId;
 };
 
-const createPayment = async function(orderId, payment){
+const createPayment = async function (orderId, payment) {
     const conn = await pool.getConnection();
     try {
         await conn.query('START TRANSACTION');
@@ -16,16 +44,16 @@ const createPayment = async function(orderId, payment){
         return true;
     } catch (error) {
         await conn.query('ROLLBACK');
-        return {error};
+        return { error };
     } finally {
         conn.release();
     }
 };
 
-const payOrderByPrime = async function(tappayKey, tappayId, prime, order){
+const payOrderByPrime = async function (tappayKey, tappayId, prime, order) {
     let res = await got.post('https://sandbox.tappaysdk.com/tpc/payment/pay-by-prime', {
         headers: {
-            'Content-Type':'application/json',
+            'Content-Type': 'application/json',
             'x-api-key': tappayKey
         },
         json: {
@@ -74,7 +102,7 @@ const getUserHistory = async (userId) => {
         order.details.list.forEach((item, index) => {
             item.main_image = main_images[index].main_image;
         });
-    
+
     })
 
     return orders;
@@ -98,4 +126,5 @@ module.exports = {
     getUserPayments,
     getUserPaymentsGroupByDB,
     getUserHistory,
+    getWinUsers,
 };

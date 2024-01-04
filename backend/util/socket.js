@@ -49,8 +49,8 @@ const socketConnection = (app) => {
     return server;
 };
 
-const changeSecKillNumber = (productName, remain) => {
-    io.emit('changeSecKillNumber', { productName, remain });
+const changeSecKillNumber = (productId, remain) => {
+    io.emit('changeSecKillNumber', { productId, remain });
 };
 
 module.exports = {

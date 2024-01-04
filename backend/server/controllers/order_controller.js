@@ -4,6 +4,27 @@ const {TAPPAY_PARTNER_KEY, TAPPAY_MERCHANT_ID} = process.env;
 const Order = require('../models/order_model');
 const util = require('../../util/util');
 
+const getWinUsers = async (req, res) => {
+    if (!req.query || !req.query.id) {
+        res.status(400).send({error: 'Id is required'});
+        return;
+    }
+
+    const productId = req.query.id;
+    const data = await Order.getWinUsers(productId);
+
+    data.forEach(d => {
+        d.productImage = util.getImagePath(req.protocol, req.hostname, productId) + d.productImage;
+        d.userPicture = util.getUserImagePath(req.protocol, req.hostname, d.user_id) + d.userPicture;
+    });
+    
+    if (data.error) {
+        res.status(500).send({error: "Database Query Error"});
+    } else {
+        res.status(200).send({data});
+    }
+};
+
 // 訂單紀錄
 const checkout = async (req, res) => {
     const data = req.body;
@@ -125,4 +146,5 @@ module.exports = {
     getUserPayments,
     getUserPaymentsGroupByDB,
     getUserHistory,
+    getWinUsers,
 };

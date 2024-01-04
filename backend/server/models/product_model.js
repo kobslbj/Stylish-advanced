@@ -239,20 +239,21 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
-const InsertOrderListToDB = async (product, users) => {
+const InsertOrderListToDB = async (productId, userIds) => {
+    console.log(userIds)
     const conn = await pool.getConnection();
     try {
         conn.query("START TRANSACTION");
-        let sql = 'INSERT INTO orderlist (productName, userName) VALUES';
+        let sql = 'INSERT INTO orderlist (product_id, user_id) VALUES';
         let data = [];
 
-        for (let i = 0; i < users.length; i++) {
-            if (i === users.length - 1) {
+        for (let i = 0; i < userIds.length; i++) {
+            if (i === userIds.length - 1) {
                 sql = sql + '(?, ?);'
             } else {
                 sql = sql + '(?, ?),'
             }
-            data.push(product, users[i]);
+            data.push(productId, userIds[i]);
         }
 
         await conn.query(sql, data);
@@ -307,7 +308,7 @@ const getAllSeckillProduct = async () => {
     const conn = await pool.getConnection();
     try {
         const [result] = await conn.query(
-            `SELECT * FROM seckillproduct`
+            `SELECT name, price, number, picture, product_id productId FROM seckillproduct`
         )
         return result;
     } catch (error) {

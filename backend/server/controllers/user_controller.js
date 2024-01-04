@@ -46,6 +46,7 @@ const signUp = async (req, res) => {
                 phone_number: user.phone_number,
                 birthday: user.birthday,
                 address: user.address,
+                rold_id: user.role_id,
             },
         },
     });
