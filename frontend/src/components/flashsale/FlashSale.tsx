@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useContext } from "react";
 import PurchaseProgress from "../chart/PurchaseProgress";
 import { fetchAllSeckillProducts, panicBuyProduct } from "../../utils/api";
+import { useNavigate } from "react-router-dom";
+import { CartCountContext } from '../../contexts/CartCountContext';
+
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
 import io from "socket.io-client";
 
-const user_name = Cookies.get("user_name");
+const user_Id = Cookies.get("user_id");
 
 type Product = {
   name: string;
@@ -13,10 +16,16 @@ type Product = {
   price: string;
   number: number;
   remain: number;
+  productId: number;
+  size: string;
+  colorCode: string;
+  colorName: string;
 };
 
 const FlashSale = () => {
   const [seckillProducts, setSeckillProducts] = useState<Product[]>([]);
+  const navigate = useNavigate();
+  const { incrementCartCount } = useContext(CartCountContext);
   useEffect(() => {
     const socket = io(import.meta.env.VITE_API_URL1);
 
@@ -24,8 +33,7 @@ const FlashSale = () => {
       console.log("SecKill Data:", data);
       setSeckillProducts((currentProducts) => {
         return currentProducts.map((product) => {
-          if (product.name === data.productName) {
-            // 創建一個新的產品對象以更新remain屬性
+          if (product.productId === data.productId) {
             return { ...product, remain: data.remain };
           }
           return product;
@@ -47,16 +55,60 @@ const FlashSale = () => {
     };
     loadSeckillProducts();
   }, []);
-  const handleBuy = async (productName: string) => {
-    const userName = user_name || "預設用戶名";
-    const message = await panicBuyProduct(userName, productName);
-    Swal.fire({
-      title: "成功!",
-      text: message,
-      icon: "success",
-      confirmButtonText: "確定",
-    });
+  const addToCart = (product: {
+    productId: any;
+    name: any;
+    picture: any;
+    price: any;
+    size: any;
+    colorCode: any;
+    colorName: any;
+  }) => {
+    const cartItem = {
+      id: product.productId,
+      name: product.name,
+      image: product.picture,
+      price: product.price,
+      size: product.size,
+      colorCode: product.colorCode,
+      colorName: product.colorName,
+      quantity: 1,
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    existingCart.push(cartItem);
+    localStorage.setItem("cart", JSON.stringify(existingCart));
+    incrementCartCount();
   };
+  const handleBuy = async (productId: number) => {
+    const userId = user_Id || "123123123";
+    try {
+      const message = await panicBuyProduct(parseInt(userId), productId);
+      Swal.fire({
+        title: "成功!",
+        text: message,
+        icon: "success",
+        confirmButtonText: "確定",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/checkout");
+        }
+      });
+    } catch (error) {
+      console.error("Error during panic buying:", error);
+      Swal.fire({
+        title: "哭哭",
+        text: "搶購失敗",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+    }
+    const product = seckillProducts.find((p) => p.productId === productId);
+    if (product) {
+      addToCart(product);
+    }
+  };
+
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -147,7 +199,7 @@ const FlashSale = () => {
                 僅剩{product.remain}件商品!!
               </p>
               <button
-                onClick={() => handleBuy(product.name)}
+                onClick={() => handleBuy(product.productId)}
                 className="w-[5.5rem] h-[5.5rem] flex-shrink-0 bg-white border border-black text-black rounded-full absolute left-[25rem] top-[12rem] hover:bg-black hover:text-white"
               >
                 Buy

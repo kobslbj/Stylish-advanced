@@ -4,6 +4,7 @@ import Footer from "../components/layout/Footer";
 import CheckoutItems from "../components/checkout/CheckoutItems";
 import OrderForm from "../components/checkout/OrderForm";
 
+
 const CheckoutPage = () => {
   const [cartUpdate, setCartUpdate] = useState(false);
   return (
