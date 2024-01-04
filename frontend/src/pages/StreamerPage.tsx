@@ -24,6 +24,7 @@ const LiveStreaming: React.FC = () => {
   const [stream, setStream] = useState<MediaStream | undefined>(undefined);
   // const [enableMicrophone, setEnableMicrophone] = useState(true);
   const [comments, setComments] = useState<CommentType[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [localId, setLocalId] = useState("");
   const currentCall = useRef<MediaConnection>();
@@ -35,6 +36,7 @@ const LiveStreaming: React.FC = () => {
   useEffect(() => {
     const userName = Cookies.get("user_name");
     socketRef.current = io(import.meta.env.VITE_API_URL1, {
+      withCredentials: true,
       transports: ["websocket", "polling"],
       path: "/video",
     });
@@ -48,19 +50,6 @@ const LiveStreaming: React.FC = () => {
   }, []);
 
   const endCall = () => {
-    const newComment:CommentType = {
-      id: Date.now().toString(),
-      content: "直播已結束",
-      user: {
-        id: Cookies.get("user_id") || "",
-        name: "Stylish 小編",
-        picture: Cookies.get("user_picture")! || "",
-      },
-    };
-      // currentConnection.current.send(newComment);
-    socketRef.current?.emit("chat message", room, newComment);
-    setComments((prevComments) => [...prevComments, newComment]);
-
     if (stream) {
       const tracks = stream.getTracks();
       tracks.forEach((track) => track.stop());
@@ -76,7 +65,8 @@ const LiveStreaming: React.FC = () => {
       peerRef.current.on("open", (id) => {
         // setStreamId(id);
         setLocalId(id);
-        console.log(id);
+        if (socketRef.current) { socketRef.current.emit("send streamId", id); }
+        setLoading(false);
       });
       // peerRef.current.on("connection", (connection) => {
       //   // connection.on("data", (data) => {
@@ -127,7 +117,7 @@ const LiveStreaming: React.FC = () => {
     }
   }
 
-  async function commentSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
+  function commentSubmitHandler(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (commentRef.current?.value.trim() === "") {
       return;
@@ -153,6 +143,22 @@ const LiveStreaming: React.FC = () => {
       commentRef.current.value = "";
     }
   }
+  function stopStreming() {
+    const newComment:CommentType = {
+      id: Date.now().toString(),
+      content: "直播已結束",
+      user: {
+        id: Cookies.get("user_id") || "",
+        name: "Stylish 小編",
+        picture: Cookies.get("user_picture")! || "",
+      },
+    };
+      // currentConnection.current.send(newComment);
+    socketRef.current?.emit("chat message", room, newComment);
+    setComments((prevComments) => [...prevComments, newComment]);
+    endCall();
+  }
+
   const copyLink = () => {
     navigator.clipboard.writeText(localId);
     // Swal.fire("已複製到剪貼簿", "分享給用戶", "success");
@@ -163,8 +169,8 @@ const LiveStreaming: React.FC = () => {
       <Header />
       <div className="lg:pt-[8.875rem] pt-[6.375rem] flex-1 flex flex-col">
         <div className="flex items-center justify-center my-3">
-          <p className="mr-3">房間號碼:{localId || "loading"}</p>
-          <button type="button" onClick={copyLink} className="px-2 py-1 border rounded-lg">
+          <p className="mr-3">房間號碼:{loading ? "loading..." : localId }</p>
+          <button type="button" onClick={copyLink} className="rounded-md py-2.5 px-4 bg-black text-white font-normal text-base disabled:opacity-50">
             複製
           </button>
         </div>
@@ -180,7 +186,7 @@ const LiveStreaming: React.FC = () => {
                 <span className="font-bold">開直播</span>
                 <FaVideo size={25} />
               </button>
-              <button type="button" onClick={endCall} disabled={!stream} className="flex gap-3 px-6 py-4 bg-red-600 border rounded-lg">
+              <button type="button" onClick={stopStreming} disabled={!stream} className="flex gap-3 px-6 py-4 bg-red-600 border rounded-lg">
                 <span className="font-bold text-white">離開</span>
                 <FaRegWindowClose size={25} color="white" />
               </button>
@@ -193,7 +199,7 @@ const LiveStreaming: React.FC = () => {
               ))}
             </div>
             <form className="flex items-center h-[4rem]" onSubmit={commentSubmitHandler}>
-              <textarea ref={commentRef} rows={1} className="resize-none block mx-2 p-2.5 w-full text-sm text-gray-900 bg-white rounded-lg border border-gray-300" placeholder="Your message..." />
+              <textarea ref={commentRef} rows={1} className="resize-none block mx-2 p-2.5 w-full text-xs text-gray-900 bg-white rounded-lg border border-gray-300" placeholder="Your message..." />
               <button type="submit" className="inline-flex justify-center p-2 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100">
                 <svg className="w-6 h-6 rotate-90" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
               </button>

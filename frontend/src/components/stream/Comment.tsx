@@ -14,13 +14,13 @@ interface CommentProps {
 
 const Comment: React.FC<CommentProps> = ({ comment }) => (
   <div key={comment.id}>
-    <div className="flex items-center gap-3">
-      <div className="relative w-8 h-8 overflow-hidden rounded-full cursor-pointer">
+    <div className="flex items-center gap-2">
+      <div className="relative w-4 h-4 overflow-hidden rounded-full cursor-pointer">
         <img src={comment.user.picture && comment.user.picture === null ? comment.user.picture : ProfileUser} alt={comment.user.name} className="object-cover" />
       </div>
-      <span className="font-sans text-sm font-semibold text-white">{comment.user.name}</span>
+      <span className="font-sans text-xs font-semibold text-white">{comment.user.name}</span>
     </div>
-    <pre className="my-4 font-sans text-sm text-white break-words whitespace-pre-wrap">{comment.content}</pre>
+    <pre className="my-2 font-sans text-xs text-white break-words whitespace-pre-wrap">{comment.content}</pre>
   </div>
 );
 
