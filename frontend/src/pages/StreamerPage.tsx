@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Cookies from "js-cookie";
 import { FaVideo, FaRegWindowClose } from "react-icons/fa";
-import { DataConnection, MediaConnection, Peer } from "peerjs";
+import { MediaConnection, Peer } from "peerjs";
 import io, { Socket } from "socket.io-client";
 import Comment from "../components/stream/Comment";
 import Header from "../components/layout/Header";
@@ -27,7 +27,7 @@ const LiveStreaming: React.FC = () => {
 
   const [localId, setLocalId] = useState("");
   const currentCall = useRef<MediaConnection>();
-  const currentConnection = useRef<DataConnection>();
+  // const currentConnection = useRef<DataConnection>();
   const peerRef = useRef<Peer>();
 
   const socketRef = useRef<Socket>();
@@ -48,19 +48,19 @@ const LiveStreaming: React.FC = () => {
   }, []);
 
   const endCall = () => {
-    if (currentConnection.current) {
-      const newComment:CommentType = {
-        id: Date.now().toString(),
-        content: "直播已結束",
-        user: {
-          id: Cookies.get("user_id") || "",
-          name: "Stylish 小編",
-          picture: Cookies.get("user_picture")! || "",
-        },
-      };
-      currentConnection.current.send(newComment);
-      setComments((prevComments) => [...prevComments, newComment]);
-    }
+    const newComment:CommentType = {
+      id: Date.now().toString(),
+      content: "直播已結束",
+      user: {
+        id: Cookies.get("user_id") || "",
+        name: "Stylish 小編",
+        picture: Cookies.get("user_picture")! || "",
+      },
+    };
+      // currentConnection.current.send(newComment);
+    socketRef.current?.emit("chat message", room, newComment);
+    setComments((prevComments) => [...prevComments, newComment]);
+
     if (stream) {
       const tracks = stream.getTracks();
       tracks.forEach((track) => track.stop());
@@ -78,13 +78,13 @@ const LiveStreaming: React.FC = () => {
         setLocalId(id);
         console.log(id);
       });
-      peerRef.current.on("connection", (connection) => {
-        // connection.on("data", (data) => {
-        //   setComments((prevComments) => [...prevComments, data as CommentType]);
-        // });
+      // peerRef.current.on("connection", (connection) => {
+      //   // connection.on("data", (data) => {
+      //   //   setComments((prevComments) => [...prevComments, data as CommentType]);
+      //   // });
 
-        currentConnection.current = connection;
-      });
+      //   currentConnection.current = connection;
+      // });
       peerRef.current.on("call", async (call) => {
         // 回傳直播內容
         const userMedia = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
