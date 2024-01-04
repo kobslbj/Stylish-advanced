@@ -11,14 +11,12 @@ import ProductDetailSkeleton from "../layout/loading/ProductDetailSkeleton";
 import { ProductCart } from "../../types/productCartType";
 import ProductComment from "../products/ProductComment";
 import SimilarProductCard from "../products/SimilarProductCard";
+import ComparePrice from "./ComparePrice";
 
-const user_id = Cookies.get("user_id");
+const userId = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams<{ id: string }>();
-  if (!id) {
-    return <NotFound />;
-  }
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
     queryKey: ["productDetails", id],
@@ -37,14 +35,15 @@ const ProductDetail = () => {
     isError: isErrorMaylike,
   } = useQuery({
     queryFn: () =>
-      fetchProductMaylike(user_id!).then((response) => response.data),
-    queryKey: ["maylikeProducts", user_id],
+      fetchProductMaylike(userId!).then((response) => response.data),
+    queryKey: ["maylikeProducts", userId],
   });
   const { incrementCartCount } = useContext(CartCountContext);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedColorName, setSelectedColorName] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [count, setCount] = useState(1);
+  const [showCompare, setShowCompare] = useState(false);
   useEffect(() => {
     if (data) {
       setSelectedColor(data.colors[0]?.code);
@@ -73,6 +72,9 @@ const ProductDetail = () => {
       window.removeEventListener("wheel", handleWheel);
     };
   }, []);
+  if (!id) {
+    return <NotFound />;
+  }
   if (isError) {
     return (
       <p className="py-48 text-center lg:py-[4.75rem]">
@@ -155,6 +157,7 @@ const ProductDetail = () => {
   );
   const imagesItems = data.images?.map((image, index) => (
     <img
+      // eslint-disable-next-line react/no-array-index-key
       key={index}
       src={image}
       alt="相關商品圖片"
@@ -238,9 +241,9 @@ const ProductDetail = () => {
         <img
           src={data.main_image}
           alt={data.title}
-          className="w-full h-auto lg:max-w-[560px] aspect-w-3 aspect-h-4"
+          className="w-full h-auto lg:max-w-[500px] aspect-w-3 aspect-h-4"
         />
-        <div className="mx-6 mt-4 lg:ml-10">
+        <div className="mx-6 mt-4 lg:ml-10 ">
           <div className="pb-5 border-b border-[#3F3A3A]">
             <h1 className="font-sans lg:text-[32px] text-xl tracking-wide font-normal text-[#3F3A3A] leading-[38px]">
               {data.title}
@@ -254,11 +257,15 @@ const ProductDetail = () => {
             </p>
           </div>
           <div>
-            <div className="flex items-center mt-[1.875rem]">
-              <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
-                顏色 |
-              </span>
-              {colorItems}
+            <div className="flex items-center gap-7 mt-[1.875rem]">
+              <div className="flex items-center">
+                <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
+                  顏色 |
+                </span>
+                {colorItems}
+              </div>
+              <button type="button" onClick={() => { setShowCompare(true); }} className="underline text-brown">比較價格</button>
+              {showCompare && <ComparePrice setShowCompare={setShowCompare} productName={data.title} />}
             </div>
             <div className="flex items-center mt-[1.875rem]">
               <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
@@ -283,7 +290,7 @@ const ProductDetail = () => {
           </button>
           <div className="mt-10 font-sans lg:text-xl text-sm font-normal leading-[30px] text-[#3F3A3A]">
             <p>{data.note}</p>
-            <pre className="mt-3">{data.description}</pre>
+            <pre className="mt-3 break-words whitespace-pre-wrap">{data.description}</pre>
             <p className="mt-3">{data.texture}</p>
             <p className="mt-3">清洗 : {data.wash}</p>
             <p className="mt-3">產地 : {data.place}</p>

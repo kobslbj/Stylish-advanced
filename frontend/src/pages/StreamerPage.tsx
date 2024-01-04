@@ -56,6 +56,7 @@ const LiveStreaming: React.FC = () => {
     if (currentCall.current) {
       currentCall.current.close();
     }
+    if (socketRef.current) { socketRef.current.emit("send streamId", ""); }
   };
   useEffect(() => {
     const createPeer = () => {
@@ -110,6 +111,7 @@ const LiveStreaming: React.FC = () => {
         videoRef.current.srcObject = userMedia;
         // videoRef.current.play();
       }
+      if (socketRef.current) { socketRef.current.emit("send streamId", localId); }
     } catch (error) {
       console.log(error);
     }
