@@ -18,6 +18,9 @@ const socketConnection = (app) => {
     });
 
     const streamIo = new Server(server, {
+        cors: {
+            origin: '*',
+        },
         transports: ['websocket', 'polling'],
         secure: true,
         path: '/video',

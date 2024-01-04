@@ -29,6 +29,7 @@ const ProfilePage = () => {
     Cookies.remove("user_name");
     Cookies.remove("user_email");
     Cookies.remove("user_picture");
+    Cookies.remove("user_role_id");
     localStorage.removeItem("cart");
     navigate("/");
   }

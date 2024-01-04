@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
-import { DataConnection, MediaConnection, Peer } from "peerjs";
+import { MediaConnection, Peer } from "peerjs";
 import io, { Socket } from "socket.io-client";
 import Comment from "../components/stream/Comment";
 import Header from "../components/layout/Header";
@@ -24,15 +24,14 @@ const StreamViewerPage = () => {
 
   const peerRef = useRef<Peer>();
   const currentCall = useRef<MediaConnection>();
-  const currentConnection = useRef<DataConnection>();
+  // const currentConnection = useRef<DataConnection>();
   const [remoteId, setRemoteId] = useState("");
-  const [myStream, setMyStream] = useState<MediaStream | undefined>(undefined);
 
   const socketRef = useRef<Socket>();
   const room = "room1";
   useEffect(() => {
     const userName = Cookies.get("user_name");
-    socketRef.current = io(import.meta.env.VITE_SOCKET_URL, {
+    socketRef.current = io(import.meta.env.VITE_API_URL1, {
       transports: ["websocket", "polling"],
       path: "/video",
     });
@@ -46,11 +45,6 @@ const StreamViewerPage = () => {
   }, []);
 
   const endCall = () => {
-    if (myStream) {
-      const tracks = myStream.getTracks();
-      tracks.forEach((track) => track.stop());
-      setMyStream(undefined);
-    }
     if (currentCall.current) {
       currentCall.current.close();
     }
@@ -58,10 +52,9 @@ const StreamViewerPage = () => {
 
   useEffect(() => {
     peerRef.current = new Peer();
-    peerRef.current.on("connection", (connection) => {
-      currentConnection.current = connection;
-    });
-
+    // peerRef.current.on("connection", (connection) => {
+    //   currentConnection.current = connection;
+    // });
     return () => {
       endCall();
     };
@@ -70,20 +63,26 @@ const StreamViewerPage = () => {
   async function watchStream() {
     if (!remoteId) { return; }
     if (peerRef.current) {
-      const connection = peerRef.current.connect(remoteId);
-      currentConnection.current = connection;
-      if (!currentConnection.current) {
-        alert("目前沒有直播");
-      }
-      connection.on("open", () => {
-        console.log("已連接");
-      });
+      // const connection = peerRef.current.connect(remoteId);
+      // currentConnection.current = connection;
+      // if (!currentConnection.current) {
+      //   alert("目前沒有直播");
+      // }
+      // connection.on("open", () => {
+      //   console.log("已連接");
+      // });
       // connection.on("data", (data) => {
       //   setComments((prevComments) => [...prevComments, data as CommentType]);
       // });
       const userMedia = await navigator.mediaDevices.getUserMedia({ video: true });
-      setMyStream(userMedia);
       const call = peerRef.current.call(remoteId, userMedia);
+
+      // 停止本地端直播
+      const videoTrack = userMedia.getVideoTracks()[0];
+      videoTrack.stop();
+      userMedia.getTracks().forEach((track) => track.stop());
+
+      // 接收直播
       call.on("stream", async (stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -94,13 +93,10 @@ const StreamViewerPage = () => {
       });
       call.on("close", () => {
         console.log("closed");
-        if (myStream) {
-          const tracks = myStream.getTracks();
-          tracks.forEach((track) => track.stop());
-          setMyStream(undefined);
-        }
         endCall();
       });
+      // currentCall.current = call;
+      // console.log(currentCall.current);
     }
   }
 

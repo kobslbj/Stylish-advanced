@@ -29,6 +29,7 @@ interface UserData {
     name: string;
     email: string;
     picture: string;
+    role_id: number;
   };
 }
 
@@ -49,6 +50,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ setShowLogin, showLogin }) => {
     Cookies.set("user_name", data.user.name, maxAge);
     Cookies.set("user_email", data.user.email, maxAge);
     Cookies.set("user_picture", data.user.picture, maxAge);
+    Cookies.set("user_role_id", data.user.role_id.toString(), maxAge);
   }
 
   function handleError(error: any) {
