@@ -21,7 +21,6 @@ const StreamViewerPage = () => {
   const [comments, setComments] = useState<CommentType[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
-  const [waiting, setWaiting] = useState(true);
 
   const peerRef = useRef<Peer>();
   const currentCall = useRef<MediaConnection>();
@@ -64,7 +63,9 @@ const StreamViewerPage = () => {
   });
 
   async function watchStream() {
-    if (!remoteId) { return; }
+    if (!remoteId) {
+      return;
+    }
     if (peerRef.current) {
       // const connection = peerRef.current.connect(remoteId);
       // currentConnection.current = connection;
@@ -84,7 +85,6 @@ const StreamViewerPage = () => {
       const videoTrack = userMedia.getVideoTracks()[0];
       videoTrack.stop();
       userMedia.getTracks().forEach((track) => track.stop());
-      setWaiting(false);
 
       // 接收直播
       call.on("stream", async (stream) => {
@@ -165,7 +165,7 @@ const StreamViewerPage = () => {
               ))}
             </div>
             <form className="flex items-center h-[4rem]" onSubmit={commentSubmitHandler}>
-              <textarea ref={commentRef} disabled={waiting} rows={1} className="resize-none block mx-2 p-2.5 w-full text-xs text-gray-900 bg-white rounded-lg border border-gray-300" placeholder="Your message..." />
+              <textarea ref={commentRef} rows={1} className="resize-none block mx-2 p-2.5 w-full text-xs text-gray-900 bg-white rounded-lg border border-gray-300" placeholder="Your message..." />
               <button type="submit" className="inline-flex justify-center p-2 text-blue-600 rounded-full cursor-pointer hover:bg-blue-100">
                 <svg className="w-6 h-6 rotate-90" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
               </button>
