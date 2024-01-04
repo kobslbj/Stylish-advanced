@@ -47,6 +47,9 @@ const StreamViewerPage = () => {
   }, []);
 
   const endCall = () => {
+    if (!remoteId && videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     if (currentCall.current) {
       currentCall.current.close();
     }
@@ -57,6 +60,9 @@ const StreamViewerPage = () => {
     // peerRef.current.on("connection", (connection) => {
     //   currentConnection.current = connection;
     // });
+    if (!remoteId && videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     return () => {
       endCall();
     };

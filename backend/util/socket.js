@@ -23,17 +23,20 @@ const socketConnection = (app) => {
         },
         path: '/video',
     });
+    let streamId;
     streamIo.on('connection', (socket) => {
         console.log('A user connected');
         //send streamId
         socket.on('send streamId', (id) => {
             console.log('receive streamId:', id);
+            streamId = id;
             streamIo.emit('receive streamId', id);
         });
         // Join Room
         socket.on('join', (room) => {
             socket.join(room);
             socket.to(room).emit('viewer', socket.id);
+            streamId && streamIo.emit('receive streamId', streamId);
         });
         //chat message
         socket.on('chat message', (room, msg) => {

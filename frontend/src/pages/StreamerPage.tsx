@@ -56,7 +56,7 @@ const LiveStreaming: React.FC = () => {
     if (currentCall.current) {
       currentCall.current.close();
     }
-    if (socketRef.current) { socketRef.current.emit("send streamId", ""); }
+    if (socketRef.current) { socketRef.current.emit("send streamId", undefined); }
   };
   useEffect(() => {
     const createPeer = () => {
@@ -146,7 +146,7 @@ const LiveStreaming: React.FC = () => {
   function stopStreming() {
     const newComment:CommentType = {
       id: Date.now().toString(),
-      content: "直播已結束",
+      content: "=====直播已結束=====",
       user: {
         id: Cookies.get("user_id") || "",
         name: "Stylish 小編",

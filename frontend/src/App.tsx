@@ -30,6 +30,11 @@ const PrivateRoute: FC = () => {
   return isLoggedIn ? <Outlet /> : <Navigate to="/login" />;
 };
 
+const AdminRoute: FC = () => {
+  const isAdmin = Cookies.get("user_role_id") === "1";
+  return isAdmin ? <Outlet /> : <Navigate to="/" />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -51,8 +56,10 @@ function App() {
                 <Route path="/my/profile" element={<ProfilePage />} />
                 <Route path="/my/order-history" element={<OrderHistoryPage />} />
                 <Route path="/thankyou" element={<ThankyouPage />} />
-                <Route path="/admin/streamer" element={<StreamerPage />} />
                 <Route path="/stream" element={<StreamViewerPage />} />
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin/streamer" element={<StreamerPage />} />
+                </Route>
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
