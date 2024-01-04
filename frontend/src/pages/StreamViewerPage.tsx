@@ -33,8 +33,6 @@ const StreamViewerPage = () => {
   useEffect(() => {
     const userName = Cookies.get("user_name");
     socketRef.current = io(import.meta.env.VITE_API_URL1, {
-      withCredentials: true,
-      transports: ["websocket", "polling"],
       path: "/video",
     });
     socketRef.current.emit("join", room, userName);
