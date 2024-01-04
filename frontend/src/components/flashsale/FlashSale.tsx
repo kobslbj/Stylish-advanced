@@ -1,8 +1,12 @@
-import { useState, useEffect,useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import PurchaseProgress from "../chart/PurchaseProgress";
-import { fetchAllSeckillProducts, panicBuyProduct } from "../../utils/api";
+import {
+  fetchAllSeckillProducts,
+  panicBuyProduct,
+  fetchOrderWin,
+} from "../../utils/api";
 import { useNavigate } from "react-router-dom";
-import { CartCountContext } from '../../contexts/CartCountContext';
+import { CartCountContext } from "../../contexts/CartCountContext";
 
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
@@ -22,8 +26,16 @@ type Product = {
   colorName: string;
 };
 
+interface Winner {
+  productName: string;
+  productImage: string;
+  qty: number;
+  userName: string;
+  userPicture: string;
+}
 const FlashSale = () => {
   const [seckillProducts, setSeckillProducts] = useState<Product[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   const navigate = useNavigate();
   const { incrementCartCount } = useContext(CartCountContext);
   useEffect(() => {
@@ -55,6 +67,18 @@ const FlashSale = () => {
     };
     loadSeckillProducts();
   }, []);
+  useEffect(() => {
+    const fetchWinners = async () => {
+      try {
+        const result = await fetchOrderWin();
+        setWinners(result);
+      } catch (error) {
+        console.error("Error fetching winners:", error);
+      }
+    };
+    fetchWinners();
+  }, []);
+
   const addToCart = (product: {
     productId: any;
     name: any;
@@ -206,6 +230,12 @@ const FlashSale = () => {
               </button>
             </div>
           </div>
+        ))}
+        <div className="text-2xl font-bold cursor-pointer">查看幸運兒</div>
+        {winners.map((winner) => (
+          <p key={winner.userName}>
+            姓名: {winner.userName} 獲得 {winner.productName}
+          </p>
         ))}
       </div>
     </div>

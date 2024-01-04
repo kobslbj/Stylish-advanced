@@ -141,6 +141,15 @@ export async function panicBuyProduct(userId: number, productId: number) {
     throw error;
   }
 }
+export async function fetchOrderWin() {
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/order/win`);
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching winning order:", error);
+    throw error;
+  }
+}
 
 
 
