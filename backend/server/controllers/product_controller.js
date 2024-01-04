@@ -22,14 +22,14 @@ redis.on("error", function (error) {
 
 // 參數放要搶購的商品 -> 第一個參數是名字 第三個參數是數量 
 async function prepare(item) {
-    await redis.hmset(item.name, "Total", item.number, "Booked", 0)
+    await redis.hmset(item.productId, "Total", item.number, "Booked", 0)
 }
 
 const path = require('path');
 const secKillScriptPath = path.join(__dirname, 'secKill.lua');
 const secKillScript = fs.readFileSync(secKillScriptPath);
 
-async function secKill(item_name, user_name) {
+async function secKill(item_id, user_id) {
     // 1. 緩存腳本取得 sha1 值
     const sha1 = await redis.script("load", secKillScript);
     console.log(sha1);
@@ -37,7 +37,7 @@ async function secKill(item_name, user_name) {
     // 2. 透過 evalsha 執行腳本
     // redis Evalsha 命令基本語法如下
     // EVALSHA sha1 numkeys key [key ...] arg [arg ...] 
-    const temp = await redis.evalsha(sha1, 1, item_name, 1, `${item_name}_OrderList`, user_name);
+    const temp = await redis.evalsha(sha1, 1, item_id, 1, `${item_id}_OrderList`, user_id);
     return temp; // 1代表還有貨 0代表沒有貨
 }
 ///////////////////////////////////////////////////////////
@@ -423,12 +423,12 @@ const comparePrice = async (req, res) => {
 const panicBuying = async (req, res) => {
     // console.time('secKill')
     const data = req.body;
-    const kill = await secKill(data.productName, data.userName);
+    const kill = await secKill(data.productId, data.userId);
 
-    const remain = await getRemain(data.productName);
+    const remain = await getRemain(data.productId);
 
     // socket io emit event
-    changeSecKillNumber(data.productName, remain);
+    changeSecKillNumber(data.productId, remain);
 
     // console.timeEnd('secKill')
     if (kill == 1) {
@@ -440,13 +440,13 @@ const panicBuying = async (req, res) => {
 
 // 把搶購訂單存到DB中
 const InsertOrderListToDB = async (req, res) => {
-    const product = req.body.product;
+    const productId = req.body.id;
     try {
         // 执行 LRANGE 命令
-        const users = await redis.lrange(`${product}_OrderList`, 0, -1);
-        await Product.InsertOrderListToDB(product, users);
-        await redis.del(product);
-        await redis.del(`${product}_OrderList`);
+        const userIds = await redis.lrange(`${productId}_OrderList`, 0, -1);
+        await Product.InsertOrderListToDB(productId, userIds);
+        await redis.del(productId);
+        await redis.del(`${productId}_OrderList`);
 
         res.status(200).send({ message: "搶購資料建立完成" })
     } catch (error) {
@@ -457,13 +457,13 @@ const InsertOrderListToDB = async (req, res) => {
 
 // 設置要被秒殺的商品
 const setKillProduct = async (req, res) => {
-    const { name, number, product_id } = req.body;
-    const RedisItem = { name, number };
+    const { name, number, productId } = req.body;
+    const RedisItem = { productId, number };
     await prepare(RedisItem); // 要放入RedisItem的名字 跟 數量 到redis中
 
-    const { products } = await Product.getProducts(1000, 0, { id: product_id })
+    const { products } = await Product.getProducts(1000, 0, { id: productId })
     const price = products[0].price;
-    const picture = util.getImagePath(req.protocol, req.hostname, product_id) + products[0].main_image;
+    const picture = util.getImagePath(req.protocol, req.hostname, productId) + products[0].main_image;
 
     // 把資料放進DB裡面
     const killProductsId = await Product.setKillProduct(
@@ -471,7 +471,7 @@ const setKillProduct = async (req, res) => {
         price,
         number,
         picture,
-        product_id
+        productId
     )
     //res.send({ "message": "秒殺商品設定成功" })
     if (killProductsId === -1) {
@@ -483,8 +483,6 @@ const setKillProduct = async (req, res) => {
 
 // 拿秒殺商品的資訊
 const getKillProduct = async (req, res) => {
-    console.log("123")
-    console.log(req.query.name);
     const result = await Product.getKillProduct(req.query.name);
 
     if (result === -1) {
@@ -503,7 +501,7 @@ const getAllSeckillProduct = async (req, res) => {
     const result = await Product.getAllSeckillProduct();
 
     for (let i = 0; i < result.length; i++) {
-        const remain = await getRemain(result[i].name);
+        const remain = await getRemain(result[i].productId);
         result[i].remain = remain;
     }
 
@@ -517,14 +515,14 @@ const getAllSeckillProduct = async (req, res) => {
 
 }
 
-const getRemain = async (name) => {
+const getRemain = async (productId) => {
     let total = 0;
     let booked = 0;
-    await redis.hget(name, "Total").then(total_value => {
+    await redis.hget(productId, "Total").then(total_value => {
         total = total_value;
     });
 
-    await redis.hget(name, "Booked").then(booked_value => {
+    await redis.hget(productId, "Booked").then(booked_value => {
         booked = booked_value;
     });
     return total - booked;

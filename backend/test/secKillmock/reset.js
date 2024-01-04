@@ -15,7 +15,7 @@ redis.on("error", function (error) {
 
 const seckillProducts = [
     {
-        product_id: "202401202401",
+        productId: "202401202401",
         category: "accessories",
         title: `APPLE iPhone 15 Pro 256G`,
         description: `iPhone 15 是蘋果公司最新推出的旗艦智能手機，將再次重新定義行業標準。\n其驚人的設計融合了超薄、輕巧的機身，採用先進的材料打造，呈現出未來感的外觀。\n前後玻璃面板巧妙地融合，營造出無縫的視覺效果，機身邊緣更是精雕細琢，提供極致握持感。\n`,
@@ -31,7 +31,7 @@ const seckillProducts = [
         other_images: ["iphone-151.jpg", "iphone-152.jpg", "iphone-15.jpg"]
     },
     {
-        product_id: "202402202402",
+        productId: "202402202402",
         category: "accessories",
         title: `APPLE AirPods Max`,
         description: `AirPods Max是一款高端的無線耳罩式耳機，專為追求卓越音質和豪華感的用戶而設計。\n這款頂級耳機集結了蘋果的創新技術和卓越工藝，提供了一種令人沉浸的音頻體驗，\n同時兼具時尚設計和出色的舒適度。`,
@@ -59,7 +59,7 @@ const createSecKillProduct = async () => {
     for (let i = 0; i < seckillProducts.length; i++) {
         const product = seckillProducts[i];
         const formdata = new FormData();
-        formdata.append('product_id', product.product_id);
+        formdata.append('product_id', product.productId);
         formdata.append('category', product.category);
         formdata.append('title', product.title);
         formdata.append('description', product.description);
@@ -100,7 +100,7 @@ const createSecKillProduct = async () => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                product_id: product.product_id,
+                productId: product.productId,
                 name: product.title,
                 number: 1000,
             })
