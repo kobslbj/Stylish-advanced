@@ -29,7 +29,22 @@ const seckillProducts = [
         sizes: "256G, 512G",
         main_image: "iphone-153.jpg",
         other_images: ["iphone-151.jpg", "iphone-152.jpg", "iphone-15.jpg"]
-
+    },
+    {
+        product_id: "202402202402",
+        category: "accessories",
+        title: `APPLE AirPods Max`,
+        description: `AirPods Max是一款高端的無線耳罩式耳機，專為追求卓越音質和豪華感的用戶而設計。\n這款頂級耳機集結了蘋果的創新技術和卓越工藝，提供了一種令人沉浸的音頻體驗，\n同時兼具時尚設計和出色的舒適度。`,
+        price: 20000,
+        texture: `金屬質地`,
+        wash: `不可水洗`,
+        place: `台灣製造`,
+        note: `商品不可退換貨`,
+        story: `AirPods Max是一款高端的無線耳罩式耳機，專為追求卓越音質和豪華感的用戶而設計。這款頂級耳機集結了蘋果的創新技術和卓越工藝，提供了一種令人沉浸的音頻體驗，同時兼具時尚設計和出色的舒適度。`,
+        color_ids: "1,2",
+        sizes: "F",
+        main_image: "airpods-max2.jpg",
+        other_images: ["airpods-max1.jpg", "airpods-max3.jpg"]
     }
 ]
 

@@ -211,7 +211,7 @@ const createProduct = async (req, res) => {
         res.status(409).send({ error: 'Product Id Exists' });
     } else {
         res.status(200).send({ productId });
-        await buildIBSimilarMatrix(); // Rebuild the similarity matrix
+        // await buildIBSimilarMatrix(); // Rebuild the similarity matrix
     }
 
 };
@@ -468,8 +468,8 @@ const setKillProduct = async (req, res) => {
     // 把資料放進DB裡面
     const killProductsId = await Product.setKillProduct(
         name,
-        number,
         price,
+        number,
         picture,
         product_id
     )
