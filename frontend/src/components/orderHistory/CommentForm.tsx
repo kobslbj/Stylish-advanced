@@ -82,7 +82,7 @@ const CommentForm:React.FC<CommentFormProps> = ({ setAddComment, productId }) =>
           <img src={CloseButton} alt="close-button" />
         </button>
         <div className="flex items-center gap-4 mb-5">
-          <p className="text-xl font-bold">滿意度</p>
+          <p className="text-xl font-bold">評價</p>
           <div className="flex">
             {[...Array(5)].map((_, index) => {
               const currentRating = index + 1;

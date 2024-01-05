@@ -12,40 +12,34 @@ const createProduct = async (product, variants, images) => {
         return result.insertId;
     } catch (error) {
         await conn.query('ROLLBACK');
-        console.log(error)
+        if (error.code === 'ER_DUP_ENTRY') {
+            return -2;
+        }
         return -1;
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
 // Comment 對資料庫的操作
 const createComment = async (productId, userId, username, userpicture, text, rating, image_url, formattedDate) => {
     const conn = await pool.getConnection();
-    //console.log('DBDBDBDB',userId,productId,text,rating)
-    console.log("Comment 對 DB 操作開始")
-    console.log(productId)
-    console.log(userId)
-    console.log(text)
-    console.log(rating)
-    console.log(image_url)
-    console.log(formattedDate)
 
     try {
         // Insert a new comment into the comment table
+        await conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'INSERT INTO comment (productId, userId, username, userpicture, text, rating, images_url, commentTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [productId, userId, username, userpicture, text, rating, image_url, formattedDate]
         );
-        // console.log(result.insertId);
-
+        conn.query("COMMIT");
 
         return result.insertId; // Return the ID of the newly inserted comment
     } catch (error) {
-        console.error('Error creating comment:', error);
+        conn.query("ROLLBACK");
         return -1; // Return -1 or some other error indicator based on your logic
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
@@ -61,6 +55,8 @@ const getComment = async (productId) => {
     } catch (error) {
         console.error('Error Getting comment:', error);
         return -1; // Return -1 or some other error indicator based on your logic
+    } finally {
+        conn.release();
     }
 }
 
@@ -68,39 +64,40 @@ const getComment = async (productId) => {
 // Like Comment的DB操作
 const likeComment = async (commentId) => {
     const conn = await pool.getConnection();
-    console.log('評論的ID是: ', commentId)
     try {
         // 更新评论的点赞数量
+        await conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'UPDATE comment SET likes = likes + 1 WHERE commentId = ?',
             [commentId]
         );
+        conn.query("COMMIT");
 
         return result.affectedRows > 0;
     } catch (error) {
-        console.error('点赞时出错：', error);
+        conn.query("ROLLBACK");
         return false;
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
 const DislikeComment = async (commentId) => {
     const conn = await pool.getConnection();
-    console.log('評論的ID是: ', commentId)
     try {
         // 更新评论的点赞数量
+        await conn.query("START TRANSACTION");
         const [result] = await conn.query(
             'UPDATE comment SET likes = likes - 1 WHERE commentId = ?',
             [commentId]
         );
-
+        conn.query("COMMIT");
         return result.affectedRows > 0;
     } catch (error) {
-        console.error('点赞时出错：', error);
+        conn.query("ROLLBACK");
         return false;
     } finally {
-        await conn.release();
+        conn.release();
     }
 }
 
@@ -126,7 +123,6 @@ const getProducts = async (pageSize, paging = 0, requirement = {}) => {
     const productQuery = 'SELECT * FROM product ' + condition.sql + ' ORDER BY id ' + limit.sql;
     const productBindings = condition.binding.concat(limit.binding);
     const [products] = await pool.query(productQuery, productBindings);
-
     const productCountQuery = 'SELECT COUNT(*) as count FROM product ' + condition.sql;
     const productCountBindings = condition.binding;
 
@@ -243,41 +239,42 @@ const getProductsImages = async (productIds) => {
     return variants;
 };
 
-const InsertOrderListToDB = async (product, users) => {
+const InsertOrderListToDB = async (productId, userIds) => {
+    console.log(userIds)
     const conn = await pool.getConnection();
     try {
         conn.query("START TRANSACTION");
-        let sql = 'INSERT INTO orderlist (productName, userName) VALUES';
+        let sql = 'INSERT INTO orderlist (product_id, user_id) VALUES';
         let data = [];
 
-        for (let i = 0; i < users.length; i++) {
-            if (i === users.length - 1) {
+        for (let i = 0; i < userIds.length; i++) {
+            if (i === userIds.length - 1) {
                 sql = sql + '(?, ?);'
             } else {
                 sql = sql + '(?, ?),'
             }
-            data.push(product, users[i]);
+            data.push(productId, userIds[i]);
         }
 
-        const [result] = await conn.query(sql, data);
-        console.log(`${product} added successfully with ID: ${result.insertId}`);
+        await conn.query(sql, data);
         conn.query("COMMIT");
-        // return result.insertId
     } catch (error) {
         console.error('Error adding product:', error);
         conn.query("ROLLBACK");
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
 // 設定秒殺商品
-const setKillProduct = async (name, price, number, picture) => {
+const setKillProduct = async (name, price, number, picture, product_id) => {
     const conn = await pool.getConnection();
     try {
         conn.query("START TRANSACTION");
         const [result] = await conn.query(
-            'INSERT INTO seckillproduct(name,price,number,picture) VALUES (?,?,?,?)',
-            [name, price, number, picture]
+            'INSERT INTO seckillproduct(name, price, number, picture, product_id) VALUES (?, ?, ?, ?, ?)',
+            [name, price, number, picture, product_id]
         )
         conn.query("COMMIT");
         return result.insertId;
@@ -285,6 +282,8 @@ const setKillProduct = async (name, price, number, picture) => {
         console.error('Error insert Seckill Product:', error);
         conn.query("ROLLBACK");
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
@@ -293,14 +292,14 @@ const getKillProduct = async (name) => {
     console.log(name);
     const conn = await pool.getConnection();
     try {
-        const [result] = await conn.query(
-            `SELECT * FROM seckillproduct WHERE name = '${name}'`
-        )
+        const [result] = await conn.query(`SELECT * FROM seckillproduct WHERE name = ?`, [name]);
         console.log(result);
-        return result;
+        return result[0];
     } catch (error) {
         console.error('Error Getting product:', error);
         return -1;
+    } finally {
+        conn.release();
     }
 }
 
@@ -309,13 +308,14 @@ const getAllSeckillProduct = async () => {
     const conn = await pool.getConnection();
     try {
         const [result] = await conn.query(
-            `SELECT * FROM seckillproduct`
+            `SELECT name, price, number, picture, product_id productId FROM seckillproduct`
         )
-        console.log(result);
         return result;
     } catch (error) {
         console.error('Error getting all seckill: ', error);
         return -1;
+    } finally {
+        conn.release();
     }
 }
 

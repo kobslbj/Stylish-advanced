@@ -7,9 +7,10 @@ import {
 import Star from "../../assets/images/star.png";
 import RedHeart from "../../assets/images/redheart.png";
 import Heart from "../../assets/images/heart.png";
+import ProfileUser from "../../assets/images/profile-user.png";
 
 type ProductCommentProps = {
-  productId: string; 
+  productId: string;
 };
 type CommentType = {
   commentId: number;
@@ -39,7 +40,7 @@ const ProductComment = ({ productId }: ProductCommentProps) => {
             ...comment,
             isLiked: false,
             isLikedNumber: comment.likes,
-          })
+          }),
         );
         setComments(commentsWithLikes);
       } catch (error) {
@@ -74,8 +75,7 @@ const ProductComment = ({ productId }: ProductCommentProps) => {
               };
             }
             return comment;
-          })
-        );
+          }));
       }
     } catch (error) {
       console.error("Error toggling like/dislike:", error);
@@ -83,7 +83,7 @@ const ProductComment = ({ productId }: ProductCommentProps) => {
   };
 
   const renderStars = (rating: number) => {
-    let stars = [];
+    const stars = [];
     for (let i = 0; i < rating; i++) {
       stars.push(<img key={i} src={Star} alt="star" />);
     }
@@ -99,33 +99,34 @@ const ProductComment = ({ productId }: ProductCommentProps) => {
           <div className="flex flex-row">
             <div className="w-[5rem] h-[5rem] flex-shrink-0 rounded-[4.74738rem] border ">
               <img
-                className="w-full h-full object-cover"
-                src={comment.userpicture}
+                className="object-cover w-full h-full"
+                src={comment.userpicture && ProfileUser}
                 alt="User"
               />
             </div>
             <div className="flex flex-col ml-3 mt-[0.69rem]">
               <p className="font-bold">{comment.username}</p>
               <p className="text-[#909090;]">
-                {comment.commentTime} 
+                {comment.commentTime}
               </p>
             </div>
           </div>
-          <div className="absolute top-0 right-0 mr-8 mt-8 flex flex-row gap-3">
+          <div className="absolute top-0 right-0 flex flex-row gap-3 mt-8 mr-8">
             <p>{comment.likes}</p>
-            <img
-              className="cursor-pointer"
-              src={comment.isLiked ? RedHeart : Heart}
-              width={25}
-              height={25}
-              alt="Heart"
-              onClick={() => toggleLiked(comment.commentId, index)}
-            />
+            <button type="button" onClick={() => toggleLiked(comment.commentId, index)}>
+              <img
+                className="cursor-pointer"
+                src={comment.isLiked ? RedHeart : Heart}
+                width={25}
+                height={25}
+                alt="Heart"
+              />
+            </button>
           </div>
           <div className="flex flex-row mt-1">
             {renderStars(comment.rating)}
           </div>
-          <p className="font-bold mt-2">{comment.text}</p>
+          <p className="mt-2 font-bold">{comment.text}</p>
           <div className="flex flex-row gap-1 mt-2">
             {comment.images_url.slice(0, 3).map((imageUrl, index) => (
               <div
@@ -133,7 +134,7 @@ const ProductComment = ({ productId }: ProductCommentProps) => {
                 className=" w-[20rem] h-[12rem]  rounded-[1rem] "
               >
                 <img
-                  className="w-full h-full object-cover"
+                  className="object-cover w-full h-full"
                   src={imageUrl}
                   alt={`item ${index + 1}`}
                 />
