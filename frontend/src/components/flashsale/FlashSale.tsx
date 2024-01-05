@@ -115,6 +115,13 @@ const FlashSale = () => {
         confirmButtonText: "確定",
       }).then((result) => {
         if (result.isConfirmed) {
+          // 搶購成功，將商品加入購物車
+          const product = seckillProducts.find(
+            (p) => p.productId === productId
+          );
+          if (product) {
+            addToCart(product);
+          }
           navigate("/checkout");
         }
       });
@@ -126,10 +133,6 @@ const FlashSale = () => {
         icon: "error",
         confirmButtonText: "確定",
       });
-    }
-    const product = seckillProducts.find((p) => p.productId === productId);
-    if (product) {
-      addToCart(product);
     }
   };
 

@@ -2,7 +2,8 @@ import { useState, useEffect, useContext, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import { fetchProductDetail } from "../../utils/api";
+import Cookies from "js-cookie";
+import { fetchProductDetail, fetchProductSimilar, fetchProductMaylike } from "../../utils/api";
 import { Product } from "../../types/productTypes";
 import { CartCountContext } from "../../contexts/CartCountContext";
 import NotFound from "../layout/NotFound";
@@ -10,18 +11,13 @@ import ProductDetailSkeleton from "../layout/loading/ProductDetailSkeleton";
 import { ProductCart } from "../../types/productCartType";
 import ProductComment from "../products/ProductComment";
 import SimilarProductCard from "../products/SimilarProductCard";
-import { fetchProductSimilar, fetchProductMaylike } from "../../utils/api";
-import Cookies from "js-cookie";
+import ComparePrice from "./ComparePrice";
 
-const user_id = Cookies.get("user_id");
+const userId = Cookies.get("user_id");
 const ProductDetail = () => {
   const similarProductsRef = useRef<HTMLDivElement>(null);
+  const userSimilarProductsRef = useRef<HTMLDivElement>(null);
   const { id } = useParams<{ id: string }>();
-
-  if (!id) {
-    return <div>產品未找到。</div>;
-  }
-
   const { data, isLoading, isError } = useQuery<Product>({
     queryFn: () => fetchProductDetail(id!),
     queryKey: ["productDetails", id],
@@ -40,14 +36,15 @@ const ProductDetail = () => {
     isError: isErrorMaylike,
   } = useQuery({
     queryFn: () =>
-      fetchProductMaylike(user_id!).then((response) => response.data),
-    queryKey: ["maylikeProducts", user_id],
+      fetchProductMaylike(userId!).then((response) => response.data),
+    queryKey: ["maylikeProducts", userId],
   });
   const { incrementCartCount } = useContext(CartCountContext);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedColorName, setSelectedColorName] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [count, setCount] = useState(1);
+  const [showCompare, setShowCompare] = useState(false);
   useEffect(() => {
     if (data) {
       setSelectedColor(data.colors[0]?.code);
@@ -68,6 +65,13 @@ const ProductDetail = () => {
         e.preventDefault();
         similarProductsRef.current.scrollLeft += e.deltaY;
       }
+      if (
+        userSimilarProductsRef.current &&
+        userSimilarProductsRef.current.contains(e.target as Node)
+      ) {
+        e.preventDefault();
+        userSimilarProductsRef.current.scrollLeft += e.deltaY;
+      }
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -76,6 +80,9 @@ const ProductDetail = () => {
       window.removeEventListener("wheel", handleWheel);
     };
   }, []);
+  if (!id) {
+    return <div>產品未找到。</div>;
+  }
   if (isError) {
     return (
       <p className="py-48 text-center lg:py-[4.75rem]">
@@ -108,7 +115,7 @@ const ProductDetail = () => {
     </div>
   ));
   const variants = data.variants.filter(
-    (variant) => variant.color_code === selectedColor
+    (variant) => variant.color_code === selectedColor,
   );
 
   const sizeItems = variants.map((variant) => (
@@ -128,7 +135,7 @@ const ProductDetail = () => {
   ));
 
   const selectedVariant = variants.find(
-    (variant) => variant.size === selectedSize
+    (variant) => variant.size === selectedSize,
   );
   const isMaxCountReached = selectedVariant && count >= selectedVariant.stock;
   const amountButton = (
@@ -158,6 +165,7 @@ const ProductDetail = () => {
   );
   const imagesItems = data.images?.map((image, index) => (
     <img
+      // eslint-disable-next-line react/no-array-index-key
       key={index}
       src={image}
       alt="相關商品圖片"
@@ -179,13 +187,13 @@ const ProductDetail = () => {
         price: data.price,
       };
       const existingCartItems = JSON.parse(
-        localStorage.getItem("cart") || "[]"
+        localStorage.getItem("cart") || "[]",
       );
       const existingItemIndex = existingCartItems.findIndex(
         (item: ProductCart) =>
           item.id === productCartData.id &&
           item.colorCode === productCartData.colorCode &&
-          item.size === productCartData.size
+          item.size === productCartData.size,
       );
       const Toast = Swal.mixin({
         toast: true,
@@ -220,8 +228,7 @@ const ProductDetail = () => {
   const renderSimilarProducts = () => {
     if (isLoadingSimilar) return <p>Loading similar products...</p>;
     if (isErrorSimilar) return <p>Error loading similar products.</p>;
-    if (!similarProducts || similarProducts.length === 0)
-      return <p>No similar products found.</p>;
+    if (!similarProducts || similarProducts.length === 0) { return <p>No similar products found.</p>; }
 
     return similarProducts.map((product: Product) => (
       <SimilarProductCard key={product.id} product={product} />
@@ -230,8 +237,7 @@ const ProductDetail = () => {
   const renderMaylikeProducts = () => {
     if (isLoadingMaylike) return <p>Loading may like products...</p>;
     if (isErrorMaylike) return <p>Error loading may like products.</p>;
-    if (!maylikeProducts || maylikeProducts.length === 0)
-      return <p>No may like products found.</p>;
+    if (!maylikeProducts || maylikeProducts.length === 0) { return <p>No may like products found.</p>; }
 
     return maylikeProducts.map((product: Product) => (
       <SimilarProductCard key={product.id} product={product} />
@@ -243,9 +249,9 @@ const ProductDetail = () => {
         <img
           src={data.main_image}
           alt={data.title}
-          className="w-full h-auto lg:max-w-[560px] aspect-w-3 aspect-h-4"
+          className="w-full h-auto lg:max-w-[500px] aspect-w-3 aspect-h-4"
         />
-        <div className="mx-6 mt-4 lg:ml-10">
+        <div className="mx-6 mt-4 lg:ml-10 ">
           <div className="pb-5 border-b border-[#3F3A3A]">
             <h1 className="font-sans lg:text-[32px] text-xl tracking-wide font-normal text-[#3F3A3A] leading-[38px]">
               {data.title}
@@ -259,11 +265,15 @@ const ProductDetail = () => {
             </p>
           </div>
           <div>
-            <div className="flex items-center mt-[1.875rem]">
-              <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
-                顏色 |
-              </span>
-              {colorItems}
+            <div className="flex items-center gap-7 mt-[1.875rem]">
+              <div className="flex items-center">
+                <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
+                  顏色 |
+                </span>
+                {colorItems}
+              </div>
+              <button type="button" onClick={() => { setShowCompare(true); }} className="underline text-brown">比較價格</button>
+              {showCompare && <ComparePrice setShowCompare={setShowCompare} productName={data.title} />}
             </div>
             <div className="flex items-center mt-[1.875rem]">
               <span className="font-sans lg:text-xl text-sm font-normal leading-6 tracking-[.2em] mr-6">
@@ -288,7 +298,7 @@ const ProductDetail = () => {
           </button>
           <div className="mt-10 font-sans lg:text-xl text-sm font-normal leading-[30px] text-[#3F3A3A]">
             <p>{data.note}</p>
-            <pre className="mt-3">{data.description}</pre>
+            <pre className="mt-3 break-words whitespace-pre-wrap">{data.description}</pre>
             <p className="mt-3">{data.texture}</p>
             <p className="mt-3">清洗 : {data.wash}</p>
             <p className="mt-3">產地 : {data.place}</p>
@@ -317,7 +327,7 @@ const ProductDetail = () => {
         <ProductComment productId={id} />
       </div>
       <div>
-        <div className="flex flex-col items-center mb-10 ">
+        <div className="flex flex-col items-center mb-10">
           <p className="font-sans text-base lg:text-xl font-normal leading-[30px] text-[#8B572A] tracking-widest lg:mr-16 mr-9 mb-3 mt-3">
             與此商品相關的產品
           </p>
@@ -336,7 +346,7 @@ const ProductDetail = () => {
           <div className="bg-[#3F3A3A] h-px flex-grow" />
           <div
             className="w-[1000px] flex flex-row flex-nowrap overflow-x-auto justify-start items-center gap-3 no-scrollbar"
-            ref={similarProductsRef}
+            ref={userSimilarProductsRef}
           >
             {renderMaylikeProducts()}
           </div>
