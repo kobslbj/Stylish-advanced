@@ -59,7 +59,7 @@ const signUp = async (name, roleId, email, password) => {
         await conn.query('ROLLBACK');
         return {error};
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
@@ -95,7 +95,7 @@ const nativeSignIn = async (email, password) => {
         await conn.query('ROLLBACK');
         return {error};
     } finally {
-        await conn.release();
+        conn.release();
     }
 };
 
@@ -135,7 +135,7 @@ const updateUserInfo = async (newUser) => {
         console.log(error);
         return {error};
     } finally {
-        await conn.release();
+        conn.release();
     }
 }
 
@@ -155,7 +155,7 @@ const updateUserImage = async (picture, userId) => {
         await conn.query('ROLLBACK');
         return {error};
     } finally {
-        await conn.release();
+        conn.release();
     }
 
 }

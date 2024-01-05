@@ -1,7 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-console.log(Cookies.get("user_id"))
+console.log(Cookies.get("user_id"));
 export async function fetchProducts(endpoint: string, keyword: string | null, pageParam: number) {
   const url = keyword
     ? `${import.meta.env.VITE_API_URL}/products/search`
@@ -9,7 +9,7 @@ export async function fetchProducts(endpoint: string, keyword: string | null, pa
 
   const params = keyword ? { keyword, paging: pageParam } : { paging: pageParam };
   const response = await axios.get(url, { params });
-  console.log(response)
+  console.log(response);
   return response.data;
 }
 
@@ -58,12 +58,12 @@ export async function fetchProductSimilar(productId: any) {
   };
 
   const body = {
-    id: productId
+    id: productId,
   };
 
   const response = await axios.get(url, {
-    headers: headers,
-    params: body
+    headers,
+    params: body,
   });
 
   return response.data;
@@ -75,12 +75,12 @@ export async function fetchProductMaylike(UserId: any) {
   };
 
   const body = {
-    id: UserId
+    id: UserId,
   };
 
   const response = await axios.get(url, {
-    headers: headers,
-    params: body
+    headers,
+    params: body,
   });
 
   return response.data;
@@ -88,7 +88,7 @@ export async function fetchProductMaylike(UserId: any) {
 export async function likeComment(commentId: any) {
   const url = `${import.meta.env.VITE_API_URL}/products/likeComment`;
   const body = {
-    commentId
+    commentId,
   };
 
   try {
@@ -100,6 +100,7 @@ export async function likeComment(commentId: any) {
     return response.data;
   } catch (error) {
     console.error("Error liking comment:", error);
+    throw error;
   }
 }
 export async function dislikeComment(commentId: any) {
@@ -118,11 +119,10 @@ export async function dislikeComment(commentId: any) {
   }
 }
 
-
 export async function fetchAllSeckillProducts() {
   try {
     const response = await axios.get(`${import.meta.env.VITE_API_URL}/products/getAllSeckillProduct`);
-    return response.data.result; 
+    return response.data.result;
   } catch (error) {
     console.error("Error fetching seckill products:", error);
     throw error;
@@ -152,5 +152,14 @@ export async function fetchOrderWin() {
 }
 
 
-
-
+export async function getComparePrice(searchword:string) {
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/products/comparePrice`, {
+      searchword,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error get compare price:", error);
+    throw error;
+  }
+}

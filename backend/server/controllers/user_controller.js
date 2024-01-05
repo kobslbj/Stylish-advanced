@@ -46,8 +46,9 @@ const signUp = async (req, res) => {
                 phone_number: user.phone_number,
                 birthday: user.birthday,
                 address: user.address,
-            }
-        }
+                rold_id: user.role_id,
+            },
+        },
     });
 
     await buildUBSimilarMatrix(); // Rebuild the user-based similarity matrix
@@ -101,14 +102,15 @@ const signIn = async (req, res) => {
             user: {
                 id: user.id,
                 provider: user.provider,
+                role_id: user.role_id,
                 name: user.name,
                 email: user.email,
                 picture: user.picture,
                 phone_number: user.phone_number,
                 birthday: user.birthday,
                 address: user.address,
-            }
-        }
+            },
+        },
     });
 };
 
@@ -133,8 +135,8 @@ const getUserProfile = async (req, res) => {
             phone_number: result.phone_number,
             birthday: result.birthday,
             address: result.address,
-            picture: result.picture
-        }
+            picture: result.picture,
+        },
     });
     return;
 };
@@ -147,10 +149,7 @@ const updateUserInfo = async (req, res) => {
         return;
     }
 
-    if (data.name === undefined || data.email === undefined ||
-        data.phone_number === undefined || data.birthday === undefined ||
-        data.address === undefined
-    ) {
+    if (data.name === undefined || data.email === undefined || data.phone_number === undefined || data.birthday === undefined || data.address === undefined) {
         res.status(400).send({ error: 'Request Error: All field is required.' });
         return;
     }
@@ -169,9 +168,9 @@ const updateUserInfo = async (req, res) => {
             phone_number: result.phone_number,
             birthday: result.birthday,
             address: result.address,
-        }
+        },
     });
-}
+};
 
 const updateUserImage = async (req, res) => {
     const data = req.body;
@@ -207,9 +206,9 @@ const updateUserImage = async (req, res) => {
         data: {
             id: result.id,
             picture: result.picture,
-        }
+        },
     });
-}
+};
 
 module.exports = {
     signUp,

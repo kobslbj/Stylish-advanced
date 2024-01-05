@@ -1,3 +1,5 @@
+import Cookies from "js-cookie";
+
 const sidebarLinks = [
   { href: "/my/profile", text: "我的帳戶" },
   { href: "/my/order-history", text: "訂單紀錄" },
@@ -10,6 +12,12 @@ const UserSideBar = () => (
         {item.text}
       </a>
     ))}
+    {Cookies.get("user_role_id") === "1" && (
+    <a href="/admin/streamer" className="block text-xl hover:text-brown">
+      開啟直播
+    </a>
+    )}
+
   </div>
 );
 
